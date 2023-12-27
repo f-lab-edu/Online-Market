@@ -1,4 +1,4 @@
-package com.example.onlinemarket.user.controller;
+package com.example.onlinemarket.user;
 
 import com.example.onlinemarket.user.dto.UserDTO;
 import com.example.onlinemarket.user.service.UserService;

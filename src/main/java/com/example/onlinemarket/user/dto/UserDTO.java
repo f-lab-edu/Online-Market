@@ -34,21 +34,15 @@ public class UserDTO {
     @Pattern(regexp = "[0-9]{10,11}", message = "10-11 자리의 전화번호를 입력해야 해요.")
     private String phone;
 
-    @NotNull(message = "역할을 선택해야 합니다.")
     private Role role;
-
     private Date createdAt;
     private Date updatedAt;
 
-    public UserDTO(String email, String password, String name, String phone, Role role,
-        Date createdAt, Date updatedAt) {
+    public UserDTO(String email, String password, String name, String phone) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.phone = phone;
-        this.role = role;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
     }
 
     public static boolean hasNullDataBeforeSignup(UserDTO userDTO) {

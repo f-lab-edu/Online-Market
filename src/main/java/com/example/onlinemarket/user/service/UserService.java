@@ -24,8 +24,7 @@ public class UserService {
         int insertCount = userMapper.register(userDTO);
 
         if (insertCount != 1) {
-            throw new RuntimeException(
-                    "insertUser ERROR! 회원가입 메서드를 확인해주세요\n" + "Params : " + userDTO);
+            throw new RuntimeException("회원가입 에러 "+ "Params : " + userDTO);
         }
     }
     public boolean isDuplicatedEmail(String email) {
