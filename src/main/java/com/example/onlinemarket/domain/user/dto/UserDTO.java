@@ -1,22 +1,16 @@
-package com.example.onlinemarket.user.dto;
+package com.example.onlinemarket.domain.user.dto;
 
+import com.example.onlinemarket.common.eunm.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.util.Date;
 import lombok.Getter;
 import lombok.Setter;
 
-
 @Getter
 @Setter
-
 public class UserDTO {
-
-    public enum Role {
-        USER, ADMIN
-    }
 
     private int id;
 
@@ -44,10 +38,4 @@ public class UserDTO {
         this.name = name;
         this.phone = phone;
     }
-
-    public static boolean hasNullDataBeforeSignup(UserDTO userDTO) {
-        return userDTO.getEmail() == null || userDTO.getPassword() == null
-            || userDTO.getName() == null;
-    }
-
 }

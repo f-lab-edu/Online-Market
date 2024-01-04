@@ -1,12 +1,17 @@
 package com.example.onlinemarket.user.controller;
 
+import static org.mockito.ArgumentMatchers.refEq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.onlinemarket.user.UserController;
-import com.example.onlinemarket.user.dto.UserDTO;
-import com.example.onlinemarket.user.service.UserService;
+import com.example.onlinemarket.domain.user.controller.UserController;
+import com.example.onlinemarket.domain.user.dto.UserDTO;
+import com.example.onlinemarket.domain.user.service.LoginService;
+import com.example.onlinemarket.domain.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -23,31 +28,46 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 @WebMvcTest(value = UserController.class)
 class UserControllerTest {
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @MockBean
+    UserService userService;
+    @MockBean
+    LoginService loginService;
+    UserDTO userDTO;
 
-	@Autowired
-	private ObjectMapper objectMapper;
+    @BeforeEach
+    void setUp() {
+        userDTO = new UserDTO("email@naver.com", "password", "name", "01011111111");
+    }
 
-	@MockBean
-	UserService userService;
+    @Test
+    @DisplayName("회원가입에 요청이 올바르면 201 Created 상태코드를 반환한다.")
+    void signUp_Success() throws Exception {
+        ResultActions actions = mockMvc.perform(MockMvcRequestBuilders
 
-	@Test
-	@DisplayName("회원가입에 성공한다.")
-	void signUp_Success() throws Exception {
+                .post("/users/sign-up")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(userDTO)));
 
-		// given
-		final UserDTO userDTO = new UserDTO("a@a.a", "aa11111!", "건희", "010-1111-1111");
+        actions.andExpect(status().isCreated()).andDo(print());
 
-		// when
-		ResultActions actions = mockMvc.perform(MockMvcRequestBuilders
-			.post("/users/sign-up")
-			.contentType(MediaType.APPLICATION_JSON)
-			.content(objectMapper.writeValueAsString(userDTO)));
+        Mockito.verify(userService).signUp(refEq(userDTO));
+    }
 
-		// then
-		actions.andExpect(status().isCreated()).andDo(print());
+    @Test
+    @DisplayName("이메일이 중복되면 409 BadRequest를  반환한다.")
+    void signUp_Fail_Duplicate_Email() throws Exception {
+        doThrow(new IllegalArgumentException()).when(userService).signUp(userDTO);
 
-		Mockito.verify(userService).register(userDTO);
-	}
+        ResultActions actions = mockMvc.perform(MockMvcRequestBuilders
+                .post("/users/sign-up")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(userDTO)));
+
+        actions
+                .andExpect(status().isBadRequest());
+    }
 }

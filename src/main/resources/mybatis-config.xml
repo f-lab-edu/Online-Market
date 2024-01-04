@@ -6,9 +6,4 @@
     <setting name="mapUnderscoreToCamelCase" value="true"/>
     <setting name="callSettersOnNulls" value="true"/>
   </settings>
-
-  <mappers>
-    <mapper resource="com/example/onlinemarket/user/mapper/UserMapper.xml"/>
-  </mappers>
-
 </configuration>

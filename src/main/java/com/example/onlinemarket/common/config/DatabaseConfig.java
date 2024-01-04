@@ -1,4 +1,4 @@
-package com.example.onlinemarket.config;
+package com.example.onlinemarket.common.config;
 
 import javax.sql.DataSource;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -14,6 +14,4 @@ public class DatabaseConfig {
     public DataSource dataSource() {
         return DataSourceBuilder.create().build();
     }
-
-
 }
