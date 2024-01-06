@@ -2,13 +2,13 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.example.onlinemarket.user.mapper.UserMapper">
-  <insert id="register" parameterType="com.example.onlinemarket.user.dto.UserDTO">
+<mapper namespace="com.example.onlinemarket.domain.user.mapper.UserMapper">
+  <insert id="insertUser" parameterType="com.example.onlinemarket.domain.user.dto.UserDTO">
     INSERT INTO User (email, password, name, phone, role, createdAt, updatedAt)
     VALUES (#{email}, #{password}, #{name}, #{phone}, #{role}, NOW(), NOW())
   </insert>
 
-  <select id="emailCheck" resultType="int">
+  <select id="existsByEmail" resultType="int">
     SELECT count(email)
     FROM User
     WHERE email = #{email}

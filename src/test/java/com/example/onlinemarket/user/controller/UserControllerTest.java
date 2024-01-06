@@ -1,12 +1,13 @@
 package com.example.onlinemarket.user.controller;
 
-import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.onlinemarket.common.exception.DuplicatedException;
 import com.example.onlinemarket.domain.user.controller.UserController;
+import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.service.LoginService;
 import com.example.onlinemarket.domain.user.service.UserService;
@@ -37,37 +38,46 @@ class UserControllerTest {
     @MockBean
     LoginService loginService;
     UserDTO userDTO;
+    SignUpRequest signUpRequest;
 
     @BeforeEach
     void setUp() {
-        userDTO = new UserDTO("email@naver.com", "password", "name", "01011111111");
+        signUpRequest = new SignUpRequest("test1234@example.com", "test1234", "geonhui",
+                "01012345678");
+        loginRequest = new LoginRequest("test1234@example.com", "test1234");
+        userDTO = UserDTO.builder()
+                .id(1)
+                .email("test1234@example.com")
+                .password("test1234")
+                .name("geonhui")
+                .phone("01012345678")
+                .build();
     }
 
     @Test
-    @DisplayName("회원가입에 요청이 올바르면 201 Created 상태코드를 반환한다.")
+    @DisplayName("회원가입에 요청이 올바르면 201 Created 상태코드를 반환하고 회원가입에 성공한다.")
     void signUp_Success() throws Exception {
         ResultActions actions = mockMvc.perform(MockMvcRequestBuilders
 
                 .post("/users/sign-up")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(userDTO)));
+                .content(objectMapper.writeValueAsString(signUpRequest)));
 
         actions.andExpect(status().isCreated()).andDo(print());
-
-        Mockito.verify(userService).signUp(refEq(userDTO));
+        Mockito.verify(userService).signUp(signUpRequest);
     }
 
     @Test
-    @DisplayName("이메일이 중복되면 409 BadRequest를  반환한다.")
+    @DisplayName("이메일이 중복되면 409 Conflict를 반환하고 회원가입에 실패한다.")
     void signUp_Fail_Duplicate_Email() throws Exception {
-        doThrow(new IllegalArgumentException()).when(userService).signUp(userDTO);
+        doThrow(new DuplicatedException("중복된 이메일입니다.")).when(userService).signUp(signUpRequest);
 
         ResultActions actions = mockMvc.perform(MockMvcRequestBuilders
                 .post("/users/sign-up")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(userDTO)));
+                .content(objectMapper.writeValueAsString(signUpRequest)));
 
         actions
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isConflict());
     }
 }

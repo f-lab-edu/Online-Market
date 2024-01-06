@@ -14,21 +14,23 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public void signUp(UserDTO userDTO) {
-        boolean isDuplicatedEmail = isDuplicatedEmail(userDTO.getEmail());
+    public void signUp(SignUpRequest request) {
+        boolean isDuplicatedEmail = isDuplicatedEmail(request.getEmail());
         if (isDuplicatedEmail) {
             throw new DuplicatedException("중복된 이메일입니다.");
         }
-        userDTO.setPassword(encryptedPassword(userDTO.getPassword()));
+        String encryptedPassword = EncryptedPassword(request.getPassword());
+        UserDTO user = request.toEntity(encryptedPassword);
 
-        userMapper.insertUser(userDTO);
+        userMapper.insertUser(user);
+    }
+
+    public UserDTO checkLogin(String email, String password) {
     }
 
     public boolean isDuplicatedEmail(String email) {
         return userMapper.existsByEmail(email) == 1;
     }
 
-    private String encryptedPassword(String password) {
-        return passwordEncoder.encryptSHA256(password);
-    }
+    private String EncryptedPassword(String password) { return passwordEncoder.encryptSHA256(password); }
 }
