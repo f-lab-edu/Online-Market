@@ -1,5 +1,7 @@
 package com.example.onlinemarket.user.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -7,6 +9,8 @@ import static org.mockito.Mockito.when;
 
 import com.example.onlinemarket.common.exception.DuplicatedException;
 import com.example.onlinemarket.common.utils.PasswordEncoder;
+import com.example.onlinemarket.domain.user.dto.LoginRequest;
+import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.mapper.UserMapper;
 import com.example.onlinemarket.domain.user.service.UserService;
@@ -28,7 +32,10 @@ class UserServiceTest {
     private UserMapper userMapper;
     @Mock
     private PasswordEncoder passwordEncoder;
-    UserDTO userdto;
+    private UserDTO testUser;
+    private UserDTO userdto;
+    SignUpRequest signUpRequest;
+    LoginRequest loginRequest;
 
     @BeforeEach
     void setUp() {
@@ -71,5 +78,29 @@ class UserServiceTest {
         when(userMapper.existsByEmail(userdto.getEmail())).thenReturn(1);
 
         assertThrows(DuplicatedException.class, () -> userService.signUp(userdto));
+    }
+
+    @Test
+    @DisplayName("이메일에 따른 패스워드가 올바른지 확인한다.")
+    void check_Login_Password_Equals_Success() {
+        when(userMapper.findByEmail(signUpRequest.getEmail())).thenReturn(testUser);
+        when(passwordEncoder.encryptSHA256(loginRequest.getPassword())).thenReturn(
+                testUser.getPassword());
+
+        UserDTO result = userService.checkLogin(loginRequest.getEmail(),
+                loginRequest.getPassword());
+
+        assertNotNull(result);
+        assertEquals(loginRequest.getEmail(), result.getEmail());
+    }
+
+    @Test
+    @DisplayName("이메일에 따른 패스워드가 아니어서 실패한다.")
+    void check_Login_Password_Not_Match_Success() {
+        when(userMapper.findByEmail(userdto.getEmail())).thenReturn(testUser);
+        when(passwordEncoder.encryptSHA256(userdto.getPassword())).thenReturn("differentPassword");
+
+        assertThrows(DuplicatedException.class,
+                () -> userService.checkLogin(userdto.getEmail(), userdto.getPassword()));
     }
 }

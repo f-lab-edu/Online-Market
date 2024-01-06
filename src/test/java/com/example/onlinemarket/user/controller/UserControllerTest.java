@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.onlinemarket.domain.user.controller.UserController;
+import com.example.onlinemarket.domain.user.dto.LoginRequest;
+import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.service.LoginService;
 import com.example.onlinemarket.domain.user.service.UserService;
@@ -37,6 +39,8 @@ class UserControllerTest {
     @MockBean
     LoginService loginService;
     UserDTO userDTO;
+    SignUpRequest signUpRequest;
+    LoginRequest loginRequest;
 
     @BeforeEach
     void setUp() {
@@ -69,5 +73,21 @@ class UserControllerTest {
 
         actions
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("로그인을 성공하면 ok를 반환한다.")
+    void login_Success() throws Exception {
+        given(userService.checkLogin(loginRequest.getEmail(),
+                loginRequest.getPassword())).willReturn(
+                userDTO);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post("/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk());
+
+        Mockito.verify(loginService).login(userDTO.getId());
     }
 }
