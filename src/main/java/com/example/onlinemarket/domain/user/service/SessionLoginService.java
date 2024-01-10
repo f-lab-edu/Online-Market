@@ -14,6 +14,6 @@ public class SessionLoginService implements LoginService {
     @Override
     public void login(int id) {
 
-        session.setAttribute(SessionKey.LOGIN_USER, id);
+        session.setAttribute(SessionKey.LOGGED_IN_USER, id);
     }
 }

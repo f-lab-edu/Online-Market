@@ -1,7 +1,6 @@
 package com.example.onlinemarket.domain.user.controller;
 
 import com.example.onlinemarket.domain.user.dto.LoginRequest;
-import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.service.LoginService;
 import com.example.onlinemarket.domain.user.service.UserService;
@@ -30,7 +29,8 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<Void> login(@RequestBody @Valid LoginRequest loginRequest) {
-        UserDTO user = userService.checkLogin(loginRequest.getEmail(), loginRequest.getPassword());
+        UserDTO user = userService.findLoggedInUser(loginRequest.getEmail(),
+                loginRequest.getPassword());
         loginService.login(user.getId());
         return new ResponseEntity<>(HttpStatus.OK);
     }

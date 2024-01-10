@@ -3,4 +3,7 @@ package com.example.onlinemarket.domain.user.service;
 import org.springframework.stereotype.Service;
 
 @Service
-public interface LoginService { void login(int id);}
+public interface LoginService {
+
+    void login(int id);
+}

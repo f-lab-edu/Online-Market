@@ -1,14 +1,15 @@
 package com.example.onlinemarket.user.controller;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.onlinemarket.common.exception.NotFoundException;
 import com.example.onlinemarket.domain.user.controller.UserController;
 import com.example.onlinemarket.domain.user.dto.LoginRequest;
-import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.service.LoginService;
 import com.example.onlinemarket.domain.user.service.UserService;
@@ -45,6 +46,7 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         userDTO = new UserDTO("email@naver.com", "password", "name", "01011111111");
+        loginRequest = new LoginRequest("email@naver.com", "password");
     }
 
     @Test
@@ -76,11 +78,10 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("로그인을 성공하면 ok를 반환한다.")
+    @DisplayName("로그인 성공하면 200 Ok를 반환한다.")
     void login_Success() throws Exception {
-        given(userService.checkLogin(loginRequest.getEmail(),
-                loginRequest.getPassword())).willReturn(
-                userDTO);
+        given(userService.findLoggedInUser(loginRequest.getEmail(),
+                loginRequest.getPassword())).willReturn(userDTO);
 
         mockMvc.perform(MockMvcRequestBuilders
                         .post("/users/login")
@@ -89,5 +90,20 @@ class UserControllerTest {
                 .andExpect(status().isOk());
 
         Mockito.verify(loginService).login(userDTO.getId());
+    }
+
+    @Test
+    @DisplayName("로그인 실패하면 404 Not Found를 반환한다.")
+    void login_Fail_Wrong_Credentials() throws Exception {
+        given(userService.findLoggedInUser(loginRequest.getEmail(),
+                loginRequest.getPassword())).willThrow(new NotFoundException());
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post("/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isNotFound());
+
+        Mockito.verify(loginService, Mockito.never()).login((int) anyLong());
     }
 }

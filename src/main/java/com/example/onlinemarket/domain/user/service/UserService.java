@@ -1,10 +1,9 @@
 package com.example.onlinemarket.domain.user.service;
 
 import com.example.onlinemarket.common.exception.DuplicatedException;
+import com.example.onlinemarket.common.exception.InvalidPasswordException;
 import com.example.onlinemarket.common.exception.NotFoundException;
-import com.example.onlinemarket.common.exception.ValidationException;
 import com.example.onlinemarket.common.utils.PasswordEncoder;
-import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,15 +26,15 @@ public class UserService {
         userMapper.insertUser(userDTO);
     }
 
-    public UserDTO checkLogin(String email, String password) {
+    public UserDTO findLoggedInUser(String email, String password) {
         UserDTO user = userMapper.findByEmail(email);
 
         if (user == null) {
             throw new NotFoundException();
         }
 
-        if (!EncryptedPassword(password).equals(user.getPassword())) {
-            throw new ValidationException();
+        if (!encryptedPassword(password).equals(user.getPassword())) {
+            throw new InvalidPasswordException();
         }
         return user;
     }

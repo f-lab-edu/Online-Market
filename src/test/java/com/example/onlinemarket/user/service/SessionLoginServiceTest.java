@@ -1,54 +1,43 @@
 package com.example.onlinemarket.user.service;
 
-import static com.example.onlinemarket.domain.user.constants.SessionKey.LOGIN_USER;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willDoNothing;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 
-import com.example.onlinemarket.common.utils.PasswordEncoder;
-import com.example.onlinemarket.domain.user.dto.LoginRequest;
-import com.example.onlinemarket.domain.user.dto.UserDTO;
+import com.example.onlinemarket.domain.user.constants.SessionKey;
 import com.example.onlinemarket.domain.user.service.SessionLoginService;
-import org.junit.jupiter.api.BeforeEach;
+import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mock.web.MockHttpSession;
 
 @ExtendWith(MockitoExtension.class)
 class SessionLoginServiceTest {
 
+    @Mock
+    private HttpSession mockHttpSession;
     @InjectMocks
-    SessionLoginService loginService;
-    @Mock
-    MockHttpSession mockHttpSession;
-    @Mock
-    PasswordEncoder passwordEncoder;
-    UserDTO testUser;
-    LoginRequest loginRequest;
+    private SessionLoginService loginService;
 
-    @BeforeEach
-    void setUp() {
-        testUser = UserDTO.builder()
-                .id(1)
-                .email("test@example.com")
-                .password(passwordEncoder.encryptSHA256("test1234"))
-                .build();
-        loginRequest = new LoginRequest("test@example.com", "test1234");
-        loginService = new SessionLoginService(mockHttpSession);
+    private final int testUserId = 1;
+
+    @Test
+    @DisplayName("로그인 시 세션에 사용자 ID가 저장되어야 한다")
+    void login_ShouldSetUserIdInSession() {
+        loginService.login(testUserId);
+
+        verify(mockHttpSession).setAttribute(SessionKey.LOGGED_IN_USER, testUserId);
     }
 
     @Test
-    @DisplayName("세션에 사용자ID 확인되면 로그인을 성공한다.")
-    void login_Success() {
-        when(mockHttpSession.getAttribute(LOGIN_USER)).thenReturn(testUser.getId());
+    @DisplayName("세션 설정 시 예외가 발생하면 에러가 발생해야 한다")
+    void login_ShouldThrowException_When_SessionSettingFails() {
+        doThrow(new RuntimeException("세션 설정 실패")).when(mockHttpSession)
+                .setAttribute(SessionKey.LOGGED_IN_USER, testUserId);
 
-        loginService.login(testUser.getId());
-
-        assertEquals(testUser.getId(), mockHttpSession.getAttribute(LOGIN_USER));
+        assertThrows(RuntimeException.class, () -> loginService.login(testUserId));
     }
 }
