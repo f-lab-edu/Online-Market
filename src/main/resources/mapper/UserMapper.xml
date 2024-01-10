@@ -8,7 +8,7 @@
     VALUES (#{email}, #{password}, #{name}, #{phone}, #{role}, NOW(), NOW())
   </insert>
 
-  <select id="existsByEmail" resultType="int">
+  <select id="emailExists" resultType="int">
     SELECT count(email)
     FROM User
     WHERE email = #{email}

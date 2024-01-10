@@ -19,7 +19,7 @@ public class UserService {
         if (isDuplicatedEmail) {
             throw new DuplicatedException("중복된 이메일입니다.");
         }
-        String encryptedPassword = EncryptedPassword(request.getPassword());
+        String encryptedPassword = encryptedPassword(request.getPassword());
         UserDTO user = request.toEntity(encryptedPassword);
 
         userMapper.insertUser(user);
@@ -29,8 +29,10 @@ public class UserService {
     }
 
     public boolean isDuplicatedEmail(String email) {
-        return userMapper.existsByEmail(email) == 1;
+        return userMapper.emailExists(email) == 1;
     }
 
-    private String EncryptedPassword(String password) { return passwordEncoder.encryptSHA256(password); }
+    private String encryptedPassword(String password) {
+        return passwordEncoder.encryptSHA256(password);
+    }
 }

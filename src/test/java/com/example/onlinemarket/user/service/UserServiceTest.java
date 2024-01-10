@@ -56,7 +56,7 @@ class UserServiceTest {
     @DisplayName("회원가입에 성공한다.")
     void signUp_Success() {
 
-        when(userMapper.existsByEmail("test@example.com")).thenReturn(0);
+        when(userMapper.emailExists("test@example.com")).thenReturn(0);
         when(passwordEncoder.encryptSHA256("test1234")).thenReturn("encodedPassword");
 
         userService.signUp(signUpRequest);
@@ -67,7 +67,7 @@ class UserServiceTest {
     @Test
     @DisplayName("해당 유저의 email이 존재하는지 확인한다.")
     void exists_By_Email_True() {
-        when(userMapper.existsByEmail(signUpRequest.getEmail())).thenReturn(1);
+        when(userMapper.emailExists(signUpRequest.getEmail())).thenReturn(1);
 
         boolean exists = userService.isDuplicatedEmail(signUpRequest.getEmail());
         Assertions.assertTrue(exists);
@@ -76,7 +76,7 @@ class UserServiceTest {
     @Test
     @DisplayName("해당 유저의 email이 존재하지 않는다.")
     void exists_By_Email_False() {
-        when(userMapper.existsByEmail(signUpRequest.getEmail())).thenReturn(0);
+        when(userMapper.emailExists(signUpRequest.getEmail())).thenReturn(0);
 
         boolean exists = userService.isDuplicatedEmail(signUpRequest.getEmail());
         Assertions.assertFalse(exists);
@@ -85,7 +85,7 @@ class UserServiceTest {
     @Test
     @DisplayName("이메일 중복으로 회원가입에 실패한다")
     void signUp_Fail_DuplicateEmail() {
-        when(userMapper.existsByEmail(signUpRequest.getEmail())).thenReturn(1);
+        when(userMapper.emailExists(signUpRequest.getEmail())).thenReturn(1);
 
         assertThrows(DuplicatedException.class, () -> userService.signUp(signUpRequest));
     }

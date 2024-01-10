@@ -8,7 +8,7 @@ public interface UserMapper {
 
     int insertUser(UserDTO userdto);
 
-    int existsByEmail(String email);
+    int emailExists(String email);
 
     UserDTO findByEmail(String email);
 }
