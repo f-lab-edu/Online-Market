@@ -1,12 +1,17 @@
 package com.example.onlinemarket.user.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.onlinemarket.common.exception.DuplicatedException;
+import com.example.onlinemarket.common.exception.InvalidPasswordException;
+import com.example.onlinemarket.common.exception.NotFoundException;
 import com.example.onlinemarket.common.utils.PasswordEncoder;
+import com.example.onlinemarket.domain.user.dto.LoginRequest;
 import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.mapper.UserMapper;
@@ -30,32 +35,20 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
     private UserDTO testUser;
-    private UserDTO userdto;
-    SignUpRequest signUpRequest;
+    private SignUpRequest signUpRequest;
+    private LoginRequest loginRequest;
 
     @BeforeEach
     void setUp() {
-        signUpRequest = new SignUpRequest("test@example.com", "test1234", "geonhui", "01012345678");
+        String encryptedPassword = "encryptedPassword";
+        testUser = new UserDTO("test@example.com", encryptedPassword, "name", "01012341234");
+        signUpRequest = new SignUpRequest("test@example.com", "test1234", "name", "01012341234");
         loginRequest = new LoginRequest("test@example.com", "test1234");
-
-        when(passwordEncoder.encryptSHA256("test1234")).thenReturn("encryptedPassword");
-
-        testUser = UserDTO.builder()
-                .id(1)
-                .email("test@example.com")
-                .password(passwordEncoder.encryptSHA256("test1234"))
-                .build();
-        userdto = UserDTO.builder()
-                .id(testUser.getId())
-                .email(testUser.getEmail())
-                .password(passwordEncoder.encryptSHA256("test1234"))
-                .build();
     }
 
     @Test
     @DisplayName("회원가입에 성공한다.")
     void signUp_Success() {
-
         when(userMapper.emailExists("test@example.com")).thenReturn(0);
         when(passwordEncoder.encryptSHA256("test1234")).thenReturn("encodedPassword");
 
@@ -89,4 +82,39 @@ class UserServiceTest {
 
         assertThrows(DuplicatedException.class, () -> userService.signUp(signUpRequest));
     }
+
+    @Test
+    @DisplayName("이메일에 알맞은 패스워드인지 확인한다.")
+    void check_Login_Password_Equals_Success() {
+        when(userMapper.findByEmail(loginRequest.getEmail())).thenReturn(testUser);
+        when(passwordEncoder.encryptSHA256(loginRequest.getPassword())).thenReturn(
+                testUser.getPassword());
+
+        UserDTO result = userService.findLoggedInUser(loginRequest.getEmail(),
+                loginRequest.getPassword());
+
+        assertNotNull(result);
+        assertEquals(loginRequest.getEmail(), result.getEmail());
+    }
+
+    @Test
+    @DisplayName("이메일에 따른 패스워드가 아니어서 실패한다.")
+    void check_Login_Password_Not_Match_Fails() {
+        when(userMapper.findByEmail(loginRequest.getEmail())).thenReturn(testUser);
+        when(passwordEncoder.encryptSHA256("wrongPassword")).thenReturn("wrongEncodedPassword");
+
+        assertThrows(InvalidPasswordException.class,
+                () -> userService.findLoggedInUser(loginRequest.getEmail(), "wrongPassword"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 이메일로 로그인을 시도하면 예외가 발생한다")
+    void login_Fail_If_UserDoesNotExist() {
+        when(userMapper.findByEmail(loginRequest.getEmail())).thenReturn(null);
+
+        assertThrows(NotFoundException.class,
+                () -> userService.findLoggedInUser(loginRequest.getEmail(),
+                        loginRequest.getPassword()));
+    }
 }
+

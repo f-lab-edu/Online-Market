@@ -2,6 +2,7 @@ package com.example.onlinemarket.domain.user.dto;
 
 import com.example.onlinemarket.common.eunm.Role;
 import java.util.Date;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,6 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@AllArgsConstructor // 모든 필드를 포함하는 생성자 생성
 public class UserDTO {
 
     private int id;
@@ -20,15 +22,10 @@ public class UserDTO {
     private Date createdAt;
     private Date updatedAt;
 
-    public UserDTO(int id, String email, String password, String name, String phone, Role role,
-            Date createdAt, Date updatedAt) {
-        this.id = id;
+    public UserDTO(String email, String password, String name, String phone) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.phone = phone;
-        this.role = role;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
     }
 }

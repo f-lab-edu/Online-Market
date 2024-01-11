@@ -1,12 +1,15 @@
 package com.example.onlinemarket.user.controller;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.onlinemarket.common.exception.DuplicatedException;
+import com.example.onlinemarket.common.exception.NotFoundException;
 import com.example.onlinemarket.domain.user.controller.UserController;
+import com.example.onlinemarket.domain.user.dto.LoginRequest;
 import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.service.LoginService;
@@ -39,19 +42,13 @@ class UserControllerTest {
     LoginService loginService;
     UserDTO userDTO;
     SignUpRequest signUpRequest;
+    LoginRequest loginRequest;
 
     @BeforeEach
     void setUp() {
-        signUpRequest = new SignUpRequest("test1234@example.com", "test1234", "geonhui",
-                "01012345678");
-        loginRequest = new LoginRequest("test1234@example.com", "test1234");
-        userDTO = UserDTO.builder()
-                .id(1)
-                .email("test1234@example.com")
-                .password("test1234")
-                .name("geonhui")
-                .phone("01012345678")
-                .build();
+        userDTO = new UserDTO("email@naver.com", "password", "name", "01011111111");
+        signUpRequest = new SignUpRequest("email@naver.com", "password", "name", "01011111111");
+        loginRequest = new LoginRequest("email@naver.com", "password");
     }
 
     @Test
@@ -59,7 +56,7 @@ class UserControllerTest {
     void signUp_Success() throws Exception {
         ResultActions actions = mockMvc.perform(MockMvcRequestBuilders
 
-                .post("/users/sign-up")
+                .post("/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signUpRequest)));
 
@@ -73,11 +70,41 @@ class UserControllerTest {
         doThrow(new DuplicatedException("중복된 이메일입니다.")).when(userService).signUp(signUpRequest);
 
         ResultActions actions = mockMvc.perform(MockMvcRequestBuilders
-                .post("/users/sign-up")
+                .post("/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signUpRequest)));
 
         actions
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("로그인 성공하면 200 Ok를 반환한다.")
+    void login_Success() throws Exception {
+        given(userService.findLoggedInUser(loginRequest.getEmail(),
+                loginRequest.getPassword())).willReturn(userDTO);
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post("/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk());
+
+        Mockito.verify(loginService).login(userDTO.getId());
+    }
+
+    @Test
+    @DisplayName("로그인 실패하면 404 Not Found를 반환한다.")
+    void login_Fail_Wrong_Credentials() throws Exception {
+        given(userService.findLoggedInUser(loginRequest.getEmail(),
+                loginRequest.getPassword())).willThrow(new NotFoundException());
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post("/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isNotFound());
+
+        Mockito.verify(loginService, Mockito.never()).login((int) anyLong());
     }
 }

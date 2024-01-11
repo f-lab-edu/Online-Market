@@ -26,7 +26,6 @@ public class SignUpRequest {
     @Pattern(regexp = "^(010)[0-9]{8}$", message = "휴대폰 번호 형식에 맞게 입력해 주세요.")
     private String phone;
 
-
     public SignUpRequest(String email, String password, String name, String phone) {
         this.email = email;
         this.password = password;

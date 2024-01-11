@@ -5,9 +5,9 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(code = BAD_REQUEST)
-public class ValidationException extends RuntimeException {
+public class InvalidPasswordException extends RuntimeException {
 
-	public ValidationException() {
-		super("유효하지 않은 값입니다.");
-	}
+    public InvalidPasswordException() {
+        super("유효하지 않은 비밀번호입니다.");
+    }
 }
