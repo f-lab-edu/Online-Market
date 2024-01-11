@@ -12,6 +12,7 @@ import com.example.onlinemarket.common.exception.InvalidPasswordException;
 import com.example.onlinemarket.common.exception.NotFoundException;
 import com.example.onlinemarket.common.utils.PasswordEncoder;
 import com.example.onlinemarket.domain.user.dto.LoginRequest;
+import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.mapper.UserMapper;
 import com.example.onlinemarket.domain.user.service.UserService;
@@ -34,25 +35,24 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
     private UserDTO testUser;
-    private UserDTO userdto;
-    SignUpRequest signUpRequest;
-    LoginRequest loginRequest;
+    private SignUpRequest signUpRequest;
+    private LoginRequest loginRequest;
 
     @BeforeEach
     void setUp() {
         String encryptedPassword = "encryptedPassword";
-        testUser = new UserDTO("test@example.com", encryptedPassword, "Test User", "01012341234");
-        userdto = new UserDTO("email@naver.com", "password", "name", "01012345678");
+        testUser = new UserDTO("test@example.com", encryptedPassword, "name", "01012341234");
+        signUpRequest = new SignUpRequest("test@example.com", "test1234", "name", "01012341234");
         loginRequest = new LoginRequest("test@example.com", "test1234");
     }
 
     @Test
     @DisplayName("회원가입에 성공한다.")
     void signUp_Success() {
-        when(userMapper.existsByEmail("email@naver.com")).thenReturn(0);
-        when(passwordEncoder.encryptSHA256("password")).thenReturn("encodedPassword");
+        when(userMapper.emailExists("test@example.com")).thenReturn(0);
+        when(passwordEncoder.encryptSHA256("test1234")).thenReturn("encodedPassword");
 
-        userService.signUp(userdto);
+        userService.signUp(signUpRequest);
 
         verify(userMapper).insertUser(any(UserDTO.class));
     }
@@ -60,37 +60,35 @@ class UserServiceTest {
     @Test
     @DisplayName("해당 유저의 email이 존재하는지 확인한다.")
     void exists_By_Email_True() {
-        when(userMapper.existsByEmail(userdto.getEmail())).thenReturn(1);
+        when(userMapper.emailExists(signUpRequest.getEmail())).thenReturn(1);
 
-        boolean exists = userService.isDuplicatedEmail(userdto.getEmail());
+        boolean exists = userService.isDuplicatedEmail(signUpRequest.getEmail());
         Assertions.assertTrue(exists);
     }
 
     @Test
     @DisplayName("해당 유저의 email이 존재하지 않는다.")
     void exists_By_Email_False() {
-        when(userMapper.existsByEmail(userdto.getEmail())).thenReturn(0);
+        when(userMapper.emailExists(signUpRequest.getEmail())).thenReturn(0);
 
-        boolean exists = userService.isDuplicatedEmail(userdto.getEmail());
+        boolean exists = userService.isDuplicatedEmail(signUpRequest.getEmail());
         Assertions.assertFalse(exists);
     }
 
     @Test
     @DisplayName("이메일 중복으로 회원가입에 실패한다")
     void signUp_Fail_DuplicateEmail() {
-        when(userMapper.existsByEmail(userdto.getEmail())).thenReturn(1);
+        when(userMapper.emailExists(signUpRequest.getEmail())).thenReturn(1);
 
-        assertThrows(DuplicatedException.class, () -> userService.signUp(userdto));
+        assertThrows(DuplicatedException.class, () -> userService.signUp(signUpRequest));
     }
 
     @Test
-    @DisplayName("이메일에 알맞은 패스워드가 올바른지 확인한다.")
+    @DisplayName("이메일에 알맞은 패스워드인지 확인한다.")
     void check_Login_Password_Equals_Success() {
         when(userMapper.findByEmail(loginRequest.getEmail())).thenReturn(testUser);
-
-        String encryptedPassword = "encryptedPassword";
         when(passwordEncoder.encryptSHA256(loginRequest.getPassword())).thenReturn(
-                encryptedPassword);
+                testUser.getPassword());
 
         UserDTO result = userService.findLoggedInUser(loginRequest.getEmail(),
                 loginRequest.getPassword());
@@ -102,13 +100,11 @@ class UserServiceTest {
     @Test
     @DisplayName("이메일에 따른 패스워드가 아니어서 실패한다.")
     void check_Login_Password_Not_Match_Fails() {
-        String wrongPassword = "wrongPassword";
         when(userMapper.findByEmail(loginRequest.getEmail())).thenReturn(testUser);
-
-        when(passwordEncoder.encryptSHA256(wrongPassword)).thenReturn("wrongEncodedPassword");
+        when(passwordEncoder.encryptSHA256("wrongPassword")).thenReturn("wrongEncodedPassword");
 
         assertThrows(InvalidPasswordException.class,
-                () -> userService.findLoggedInUser(loginRequest.getEmail(), wrongPassword));
+                () -> userService.findLoggedInUser(loginRequest.getEmail(), "wrongPassword"));
     }
 
     @Test
@@ -121,3 +117,4 @@ class UserServiceTest {
                         loginRequest.getPassword()));
     }
 }
+

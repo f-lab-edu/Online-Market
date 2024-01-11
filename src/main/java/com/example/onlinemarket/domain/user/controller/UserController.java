@@ -1,6 +1,7 @@
 package com.example.onlinemarket.domain.user.controller;
 
 import com.example.onlinemarket.domain.user.dto.LoginRequest;
+import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.service.LoginService;
 import com.example.onlinemarket.domain.user.service.UserService;
@@ -21,9 +22,9 @@ public class UserController {
     private final UserService userService;
     private final LoginService loginService;
 
-    @PostMapping("/sign-up")
-    public ResponseEntity<Void> signUp(@RequestBody @Valid UserDTO userDTO) {
-        userService.signUp(userDTO);
+    @PostMapping
+    public ResponseEntity<Void> signUp(@RequestBody @Valid SignUpRequest request) {
+        userService.signUp(request);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 

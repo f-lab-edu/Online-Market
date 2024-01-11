@@ -6,10 +6,9 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface UserMapper {
 
-    int insertUser(UserDTO userDTO);
+    int insertUser(UserDTO userdto);
 
-    int existsByEmail(String email);
+    int emailExists(String email);
 
     UserDTO findByEmail(String email);
-
 }
