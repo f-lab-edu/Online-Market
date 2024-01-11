@@ -1,12 +1,15 @@
 package com.example.onlinemarket.user.service;
 
+import static com.example.onlinemarket.domain.user.constants.SessionKey.LOGGED_IN_USER;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
-import com.example.onlinemarket.domain.user.constants.SessionKey;
+import com.example.onlinemarket.domain.user.dto.UserDTO;
 import com.example.onlinemarket.domain.user.service.SessionLoginService;
 import jakarta.servlet.http.HttpSession;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,23 +24,44 @@ class SessionLoginServiceTest {
     private HttpSession mockHttpSession;
     @InjectMocks
     private SessionLoginService loginService;
+    UserDTO testUser;
 
-    private final int testUserId = 1;
+    @BeforeEach
+    void setUp() {
+        testUser = UserDTO.builder()
+                .id(1)
+                .email("test@example.com")
+                .password("test1234")
+                .name("Test User")
+                .phone("01012345678")
+                .build();
+        mockHttpSession.setAttribute(LOGGED_IN_USER, null);
+    }
 
     @Test
     @DisplayName("로그인 시 세션에 사용자 ID가 저장되어야 한다")
     void login_ShouldSetUserIdInSession() {
-        loginService.login(testUserId);
+        loginService.login(testUser.getId());
 
-        verify(mockHttpSession).setAttribute(SessionKey.LOGGED_IN_USER, testUserId);
+        verify(mockHttpSession).setAttribute(LOGGED_IN_USER, testUser.getId());
     }
 
     @Test
-    @DisplayName("세션 설정 시 예외가 발생하면 에러가 발생해야 한다")
+    @DisplayName("세션 설정 시 예외가 발생하면 에러가 발생한다.")
     void login_ShouldThrowException_When_SessionSettingFails() {
         doThrow(new RuntimeException("세션 설정 실패")).when(mockHttpSession)
-                .setAttribute(SessionKey.LOGGED_IN_USER, testUserId);
+                .setAttribute(LOGGED_IN_USER, testUser.getId());
 
-        assertThrows(RuntimeException.class, () -> loginService.login(testUserId));
+        assertThrows(RuntimeException.class, () -> loginService.login(testUser.getId()));
+    }
+
+    @Test
+    @DisplayName("로그아웃에 성공한다")
+    void logout_Success() {
+        mockHttpSession.setAttribute(LOGGED_IN_USER, testUser.getId());
+
+        loginService.logout();
+
+        assertNull(mockHttpSession.getAttribute(LOGGED_IN_USER));
     }
 }

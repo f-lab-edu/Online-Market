@@ -35,4 +35,10 @@ public class UserController {
         loginService.login(user.getId());
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() {
+        loginService.logout();
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
 }
