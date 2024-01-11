@@ -1,7 +1,9 @@
 package com.example.onlinemarket.user.controller;
 
+import static com.example.onlinemarket.domain.user.constants.SessionKey.LOGGED_IN_USER;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,6 +26,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -43,12 +46,22 @@ class UserControllerTest {
     UserDTO userDTO;
     SignUpRequest signUpRequest;
     LoginRequest loginRequest;
+    MockHttpSession mockHttpSession;
 
     @BeforeEach
     void setUp() {
-        userDTO = new UserDTO("email@naver.com", "password", "name", "01011111111");
-        signUpRequest = new SignUpRequest("email@naver.com", "password", "name", "01011111111");
-        loginRequest = new LoginRequest("email@naver.com", "password");
+        signUpRequest = new SignUpRequest("test1234@example.com", "test1234", "geonhui",
+                "01012345678");
+        loginRequest = new LoginRequest("test1234@example.com", "test1234");
+        userDTO = UserDTO.builder()
+                .id(1)
+                .email("test1234@example.com")
+                .password("test1234")
+                .name("geonhui")
+                .phone("01012345678")
+                .build();
+        mockHttpSession = new MockHttpSession();
+        mockHttpSession.setAttribute(LOGGED_IN_USER, 1);
     }
 
     @Test
@@ -106,5 +119,19 @@ class UserControllerTest {
                 .andExpect(status().isNotFound());
 
         Mockito.verify(loginService, Mockito.never()).login((int) anyLong());
+    }
+
+    @Test
+    @DisplayName("로그아웃을 성공하면 200 Ok를 반환한다.")
+    void logout_Success() throws Exception {
+        willDoNothing().given(loginService).logout();
+
+        mockMvc.perform(MockMvcRequestBuilders
+                        .post("/users/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .session(mockHttpSession))
+                .andExpect(status().isOk());
+
+        Mockito.verify(loginService).logout();
     }
 }

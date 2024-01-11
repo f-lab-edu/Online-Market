@@ -16,4 +16,9 @@ public class SessionLoginService implements LoginService {
 
         session.setAttribute(SessionKey.LOGGED_IN_USER, id);
     }
+
+    @Override
+    public void logout() {
+        session.removeAttribute(SessionKey.LOGGED_IN_USER);
+    }
 }

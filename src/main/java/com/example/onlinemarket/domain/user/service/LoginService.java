@@ -6,4 +6,6 @@ import org.springframework.stereotype.Service;
 public interface LoginService {
 
     void login(int id);
+
+    void logout();
 }
