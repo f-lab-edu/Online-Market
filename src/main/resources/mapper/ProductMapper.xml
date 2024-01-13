@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.onlinemarket.domain.product.mapper.ProductMapper">
+
+  <select id="findAll" resultType="com.example.onlinemarket.domain.product.dto.ProductDTO">
+    SELECT id, name, price
+    FROM Product
+  </select>
+
+  <select id="findById" resultType="com.example.onlinemarket.domain.product.dto.ProductDTO">
+    SELECT id, name, price, description
+    FROM Product
+    WHERE id = #{id}
+  </select>
+
+  <select id="findByNameContaining"
+    resultType="com.example.onlinemarket.domain.product.dto.ProductDTO">
+    SELECT name, price
+    FROM Product
+    WHERE name LIKE CONCAT('%', #{name}, '%')
+  </select>
+
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO Product (name, price, description)
+    VALUES (#{name}, #{price}, #{description})
+  </insert>
+
+  <update id="update">
+    UPDATE Product
+    SET name        = #{name},
+        price       = #{price},
+        description = #{description}
+    WHERE id = #{id}
+  </update>
+
+  <delete id="deleteById">
+    DELETE
+    FROM Product
+    WHERE id = #{id}
+  </delete>
+
+</mapper>
