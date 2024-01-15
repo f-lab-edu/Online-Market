@@ -41,6 +41,10 @@ public class UserService {
         return user;
     }
 
+    public boolean getUser(int userId) {
+        return userMapper.findById(userId);
+    }
+
     public boolean isDuplicatedEmail(String email) {
         return userMapper.emailExists(email) == 1;
     }

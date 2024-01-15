@@ -27,4 +27,18 @@
     WHERE email = #{email}
   </select>
 
+  <select id="findById" parameterType="int"
+    resultType="com.example.onlinemarket.domain.user.dto.UserDTO">
+    SELECT id,
+           email,
+           password,
+           name,
+           phone,
+           role,
+           createdAt,
+           updatedAt
+    FROM User
+    where id = #{id}
+  </select>
+
 </mapper>
