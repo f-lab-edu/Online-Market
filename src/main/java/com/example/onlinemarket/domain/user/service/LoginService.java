@@ -5,7 +5,10 @@ import org.springframework.stereotype.Service;
 @Service
 public interface LoginService {
 
-    void login(int id);
+    void login(long id);
 
     void logout();
+
+    long getLoginUserId();
+
 }

@@ -29,7 +29,7 @@ public class ProductService {
     }
 
 
-    public ProductDTO getProductById(int id) {
+    public ProductDTO getProductById(long id) {
         ProductDTO product = productMapper.findById(id);
 
         if (product == null) {
@@ -39,7 +39,7 @@ public class ProductService {
     }
 
 
-    public int createProduct(ProductDTO productDTO) {
+    public long createProduct(ProductDTO productDTO) {
         productMapper.insert(productDTO);
 
         return productDTO.getId();

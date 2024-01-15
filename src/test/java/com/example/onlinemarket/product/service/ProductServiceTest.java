@@ -35,7 +35,7 @@ public class ProductServiceTest {
 
     @BeforeEach
     public void setUp() {
-        productDTO = new ProductDTO(1, "Test Product", 1000.0, "Test Description");
+        productDTO = new ProductDTO(1L, "Test Product", 1000.0, 40, "Test Description");
     }
 
     @Test
@@ -60,9 +60,9 @@ public class ProductServiceTest {
         assertFalse(foundProducts.isEmpty(), "검색된 상품 목록이 비어있지 않아야 합니다.");
         assertEquals(expectedProducts.size(), foundProducts.size(), "검색된 상품 수가 일치해야 합니다.");
         assertEquals(expectedProducts.get(0).getId(), foundProducts.get(0).getId(),
-                "검색된 상품의 ID가 일치해야 합니다.");
+            "검색된 상품의 ID가 일치해야 합니다.");
         assertEquals(expectedProducts.get(0).getName(), foundProducts.get(0).getName(),
-                "검색된 상품의 이름이 일치해야 합니다.");
+            "검색된 상품의 이름이 일치해야 합니다.");
     }
 
 
@@ -71,7 +71,7 @@ public class ProductServiceTest {
     public void testSearchProductsByNameFailure() {
         when(productMapper.findByNameContaining(anyString())).thenReturn(Collections.emptyList());
         assertThrows(NotFoundException.class,
-                () -> productService.searchProductsByName("nonexistent"));
+            () -> productService.searchProductsByName("nonexistent"));
     }
 
     @Test
@@ -130,7 +130,7 @@ public class ProductServiceTest {
         when(productMapper.findById(1)).thenReturn(null);
 
         assertThrows(NotFoundException.class,
-                () -> productService.updateProduct(productDTO));
+            () -> productService.updateProduct(productDTO));
     }
 
     @Test

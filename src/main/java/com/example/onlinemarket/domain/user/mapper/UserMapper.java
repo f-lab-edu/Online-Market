@@ -11,4 +11,7 @@ public interface UserMapper {
     int emailExists(String email);
 
     UserDTO findByEmail(String email);
+
+    boolean findById(long id);
+
 }

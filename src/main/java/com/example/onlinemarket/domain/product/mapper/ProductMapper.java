@@ -10,7 +10,7 @@ public interface ProductMapper {
 
     List<ProductDTO> findAll();
 
-    ProductDTO findById(@Param("id") int productId);
+    ProductDTO findById(long productId);
 
     List<ProductDTO> findByNameContaining(@Param("name") String name);
 
@@ -18,5 +18,7 @@ public interface ProductMapper {
 
     void update(ProductDTO product);
 
-    void deleteById(@Param("id") int productId);
+    void deleteById(@Param("id") long productId);
+
+    void updateQuantity(Long id, Long quantity);
 }
