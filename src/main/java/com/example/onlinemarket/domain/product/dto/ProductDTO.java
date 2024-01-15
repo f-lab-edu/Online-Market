@@ -1,5 +1,6 @@
 package com.example.onlinemarket.domain.product.dto;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -15,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ProductDTO {
 
-    private int id;
+    private long id;
 
     @NotNull
     @NotEmpty
@@ -24,6 +25,9 @@ public class ProductDTO {
     @Positive
     @NotNull
     private Double price;
+
+    @Min(1)
+    private long quantity; // 상품 수량
 
     @NotNull
     @Size(min = 10, max = 200)

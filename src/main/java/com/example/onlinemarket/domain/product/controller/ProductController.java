@@ -59,7 +59,7 @@ public class ProductController {
     public ResponseEntity<ApiResponse<ProductDTO>> createProduct(
         @RequestBody @Valid ProductDTO productDTO) {
 
-        int productId = productService.createProduct(productDTO);
+        long productId = productService.createProduct(productDTO);
 
         URI location = ServletUriComponentsBuilder
             .fromCurrentRequest().path("/{id}")

@@ -41,4 +41,10 @@
     WHERE id = #{id}
   </delete>
 
+  <update id="updateQuantity">
+    UPDATE Product
+    SET quantity = #{quantity}
+    WHERE id = #{id}
+  </update>
+
 </mapper>
