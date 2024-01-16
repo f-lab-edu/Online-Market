@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.onlinemarket.domain.category.mapper.CategoryMapper">
+
+  <select id="findAll" resultType="com.example.onlinemarket.domain.Category">
+    SELECT *
+    FROM Category
+  </select>
+
+  <select id="findById" parameterType="long" resultType="com.example.onlinemarket.domain.Category">
+    SELECT *
+    FROM Category
+    WHERE id = #{id}
+  </select>
+
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id"
+    parameterType="com.example.onlinemarket.domain.Category">
+    INSERT INTO Category (name)
+    VALUES (#{name})
+  </insert>
+
+  <update id="updateName" parameterType="com.example.onlinemarket.domain.Category">
+    UPDATE Category
+    SET name = #{name}
+    WHERE id = #{id}
+  </update>
+
+  <delete id="deleteById" parameterType="long">
+    DELETE
+    FROM Category
+    WHERE id = #{id}
+  </delete>
+
+</mapper>
