@@ -7,7 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import com.example.onlinemarket.common.exception.NotFoundException;
 import com.example.onlinemarket.domain.category.dto.CategoryDTO;
@@ -15,6 +17,7 @@ import com.example.onlinemarket.domain.category.mapper.CategoryMapper;
 import com.example.onlinemarket.domain.product.dto.ProductDTO;
 import com.example.onlinemarket.domain.product.mapper.ProductMapper;
 import com.example.onlinemarket.domain.product.service.ProductService;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,18 +47,31 @@ public class ProductServiceTest {
     }
 
     @Test
-    @DisplayName("모든 상품 조회 성공")
+    @DisplayName("상품 조회 성공 시 반환된 상품 목록 검증")
     public void testGetAllProductsSuccess() {
+        // Arrange
         Long categoryId = 1L;
         int page = 1;
-        int size = 10;
+        int limit = 100;
+        ProductDTO productDTO2 = ProductDTO.builder()
+            .id(1L)
+            .categoryId(categoryId)
+            .name("Product Name")
+            .price(100.0)
+            .quantity(10)
+            .description("Product Description")
+            .build();
 
-        //        when(productMapper.findAll(anyInt(), anyInt())).thenReturn(Collections.singletonList(productDTO));
-        when(categoryMapper.findById(anyLong())).thenReturn(new CategoryDTO(categoryId, "TestCategory"));
+        List<ProductDTO> expectedProducts = Arrays.asList(productDTO2);
 
-        List<ProductDTO> products = productService.getAllProducts(categoryId, page, size);
+        when(productMapper.findAll(categoryId, 0, limit)).thenReturn(expectedProducts);
 
-        assertFalse(products.isEmpty());
+        // Act
+        List<ProductDTO> actualProducts = productService.getAllProducts(categoryId, page, limit);
+
+        // Assert
+        assertEquals(expectedProducts, actualProducts);
+        verify(productMapper, times(1)).findAll(categoryId, 0, limit);
     }
 
 
