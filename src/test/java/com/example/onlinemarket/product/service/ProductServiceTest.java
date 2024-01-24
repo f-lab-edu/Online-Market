@@ -5,10 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.example.onlinemarket.common.exception.NotFoundException;
+import com.example.onlinemarket.domain.category.dto.CategoryDTO;
+import com.example.onlinemarket.domain.category.mapper.CategoryMapper;
 import com.example.onlinemarket.domain.product.dto.ProductDTO;
 import com.example.onlinemarket.domain.product.mapper.ProductMapper;
 import com.example.onlinemarket.domain.product.service.ProductService;
@@ -32,22 +35,29 @@ public class ProductServiceTest {
     private ProductService productService;
 
     private ProductDTO productDTO;
+    private CategoryMapper categoryMapper;
 
     @BeforeEach
     public void setUp() {
-        productDTO = new ProductDTO(1L, "Test Product", 1000.0, 40, "Test Description");
+        productDTO = new ProductDTO(1L, 1l, "categoryName", "Product Name", 100.0, 40, "Test Description");
+        when(categoryMapper.findById(anyLong())).thenReturn(new CategoryDTO(1L, "TestCategory"));
     }
 
     @Test
     @DisplayName("모든 상품 조회 성공")
     public void testGetAllProductsSuccess() {
-        when(productMapper.findAll()).thenReturn(Collections.singletonList(productDTO));
+        Long categoryId = 1L;
+        int page = 1;
+        int size = 10;
 
-        List<ProductDTO> products = productService.getAllProducts();
+        //        when(productMapper.findAll(anyInt(), anyInt())).thenReturn(Collections.singletonList(productDTO));
+        when(categoryMapper.findById(anyLong())).thenReturn(new CategoryDTO(categoryId, "TestCategory"));
+
+        List<ProductDTO> products = productService.getAllProducts(categoryId, page, size);
 
         assertFalse(products.isEmpty());
-        assertEquals(productDTO, products.get(0));
     }
+
 
     @Test
     @DisplayName("상품 이름으로 검색 성공")

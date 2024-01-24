@@ -16,7 +16,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ProductDTO {
 
-    private long id;
+    private Long id;
+
+    private long categoryId;
+
+    private String categoryName; // 카테고리 이름 추가
 
     @NotNull
     @NotEmpty
