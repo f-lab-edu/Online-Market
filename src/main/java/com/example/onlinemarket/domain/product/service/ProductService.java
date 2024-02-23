@@ -13,8 +13,9 @@ public class ProductService {
 
     private final ProductMapper productMapper;
 
-    public List<ProductDTO> getAllProducts() {
-        return productMapper.findAll();
+    public List<ProductDTO> getAllProducts(Long categoryId, int page, int limit) {
+        int offset = (page - 1) * limit;
+        return productMapper.findAll(categoryId, offset, limit);
     }
 
 

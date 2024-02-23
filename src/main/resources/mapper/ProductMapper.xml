@@ -5,8 +5,12 @@
 <mapper namespace="com.example.onlinemarket.domain.product.mapper.ProductMapper">
 
   <select id="findAll" resultType="com.example.onlinemarket.domain.product.dto.ProductDTO">
-    SELECT id, name, price
-    FROM Product
+    SELECT p.name, p.price, p.quantity, c.name
+    FROM Product p
+           INNER JOIN Category c ON p.categoryId = c.id
+    WHERE p.categoryId = #{categoryId}
+    ORDER BY p.id
+    LIMIT #{limit} OFFSET #{offset}
   </select>
 
   <select id="findById" resultType="com.example.onlinemarket.domain.product.dto.ProductDTO">

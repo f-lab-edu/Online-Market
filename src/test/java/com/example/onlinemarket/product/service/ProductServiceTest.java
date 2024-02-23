@@ -5,13 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import com.example.onlinemarket.common.exception.NotFoundException;
+import com.example.onlinemarket.domain.category.dto.CategoryDTO;
+import com.example.onlinemarket.domain.category.mapper.CategoryMapper;
 import com.example.onlinemarket.domain.product.dto.ProductDTO;
 import com.example.onlinemarket.domain.product.mapper.ProductMapper;
 import com.example.onlinemarket.domain.product.service.ProductService;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,22 +38,42 @@ public class ProductServiceTest {
     private ProductService productService;
 
     private ProductDTO productDTO;
+    private CategoryMapper categoryMapper;
 
     @BeforeEach
     public void setUp() {
-        productDTO = new ProductDTO(1L, "Test Product", 1000.0, 40, "Test Description");
+        productDTO = new ProductDTO(1L, 1l, "categoryName", "Product Name", 100.0, 40, "Test Description");
+        when(categoryMapper.findById(anyLong())).thenReturn(new CategoryDTO(1L, "TestCategory"));
     }
 
     @Test
-    @DisplayName("모든 상품 조회 성공")
+    @DisplayName("상품 조회 성공 시 반환된 상품 목록 검증")
     public void testGetAllProductsSuccess() {
-        when(productMapper.findAll()).thenReturn(Collections.singletonList(productDTO));
+        // Arrange
+        Long categoryId = 1L;
+        int page = 1;
+        int limit = 100;
+        ProductDTO productDTO2 = ProductDTO.builder()
+            .id(1L)
+            .categoryId(categoryId)
+            .name("Product Name")
+            .price(100.0)
+            .quantity(10)
+            .description("Product Description")
+            .build();
 
-        List<ProductDTO> products = productService.getAllProducts();
+        List<ProductDTO> expectedProducts = Arrays.asList(productDTO2);
 
-        assertFalse(products.isEmpty());
-        assertEquals(productDTO, products.get(0));
+        when(productMapper.findAll(categoryId, 0, limit)).thenReturn(expectedProducts);
+
+        // Act
+        List<ProductDTO> actualProducts = productService.getAllProducts(categoryId, page, limit);
+
+        // Assert
+        assertEquals(expectedProducts, actualProducts);
+        verify(productMapper, times(1)).findAll(categoryId, 0, limit);
     }
+
 
     @Test
     @DisplayName("상품 이름으로 검색 성공")

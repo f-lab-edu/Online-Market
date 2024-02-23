@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface ProductMapper {
 
-    List<ProductDTO> findAll();
+    List<ProductDTO> findAll(Long categoryId, int offset, int limit);
 
     ProductDTO findById(long productId);
 

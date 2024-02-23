@@ -28,11 +28,13 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAllProducts() {
+    public ResponseEntity<ApiResponse<List<ProductDTO>>> getAllProducts(
+        @RequestParam Long categoryId,
+        @RequestParam(defaultValue = "1") int page,
+        @RequestParam(defaultValue = "100") int limit) {
 
-        List<ProductDTO> products = productService.getAllProducts();
-
-        return ResponseEntity.ok(new ApiResponse<>(true, "All products retrieved", products));
+        List<ProductDTO> products = productService.getAllProducts(categoryId, page, limit);
+        return ResponseEntity.ok(new ApiResponse<>(true, "All products retrieved for category " + categoryId, products));
     }
 
 
