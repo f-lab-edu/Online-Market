@@ -5,7 +5,6 @@ import com.example.onlinemarket.domain.product.dto.ProductDTO;
 import com.example.onlinemarket.domain.product.mapper.ProductMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,7 +13,6 @@ public class ProductService {
 
     private final ProductMapper productMapper;
 
-    @Cacheable(value = "products", key = "#categoryId")
     public List<ProductDTO> getAllProducts(Long categoryId, int page, int limit) {
         int offset = (page - 1) * limit;
         return productMapper.findAll(categoryId, offset, limit);
