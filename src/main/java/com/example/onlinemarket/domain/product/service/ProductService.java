@@ -1,9 +1,11 @@
 package com.example.onlinemarket.domain.product.service;
 
+import com.example.onlinemarket.common.Redis.RedisService;
 import com.example.onlinemarket.common.exception.NotFoundException;
 import com.example.onlinemarket.domain.product.dto.ProductDTO;
 import com.example.onlinemarket.domain.product.mapper.ProductMapper;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,12 +14,20 @@ import org.springframework.stereotype.Service;
 public class ProductService {
 
     private final ProductMapper productMapper;
+    private final RedisService redisService;
 
     public List<ProductDTO> getAllProducts(Long categoryId, int page, int limit) {
-        int offset = (page - 1) * limit;
-        return productMapper.findAll(categoryId, offset, limit);
-    }
+        String key = "category:" + categoryId + ":page:" + page + ":limit:" + limit;
 
+        List<ProductDTO> products = (List<ProductDTO>) redisService.getValues(key);
+        if (products == null) {
+            int offset = (page - 1) * limit;
+            products = productMapper.findAll(categoryId, offset, limit);
+            redisService.setValues(key, products, 10, TimeUnit.MINUTES);
+        }
+
+        return products;
+    }
 
     public List<ProductDTO> searchProductsByName(String name) {
         List<ProductDTO> searchedProducts = productMapper.findByNameContaining(name);
