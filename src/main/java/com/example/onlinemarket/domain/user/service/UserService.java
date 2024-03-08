@@ -1,13 +1,15 @@
 package com.example.onlinemarket.domain.user.service;
 
-import com.example.onlinemarket.common.exception.DuplicatedException;
+import com.example.onlinemarket.common.exception.DuplicatedEmailException;
+import com.example.onlinemarket.common.exception.DuplicatedPhoneException;
 import com.example.onlinemarket.common.exception.InvalidPasswordException;
 import com.example.onlinemarket.common.exception.NotFoundException;
 import com.example.onlinemarket.common.utils.PasswordEncoder;
 import com.example.onlinemarket.domain.user.dto.SignUpRequest;
-import com.example.onlinemarket.domain.user.dto.UserDTO;
+import com.example.onlinemarket.domain.user.entity.User;
 import com.example.onlinemarket.domain.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -17,19 +19,30 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public void signUp(SignUpRequest request) {
-        boolean isDuplicatedEmail = isDuplicatedEmail(request.getEmail());
-        if (isDuplicatedEmail) {
-            throw new DuplicatedException("중복된 이메일입니다.");
-        }
-        String encryptedPassword = encryptedPassword(request.getPassword());
-        UserDTO user = request.toEntity(encryptedPassword);
+    public void signUp(SignUpRequest signUpRequest) {
+        String password = encryptedPassword(signUpRequest.getPassword());
+        User newUser = signUpRequest.toEntity(password);
 
-        userMapper.insertUser(user);
+        try {
+            userMapper.insertUser(newUser);
+        } catch (DuplicateKeyException e) {
+            if (e.getMessage().contains(newUser.getEmail())) {
+                throw new DuplicatedEmailException("중복된 이메일입니다.");
+            }
+            if (e.getMessage().contains(newUser.getPhone())) {
+                throw new DuplicatedPhoneException("중복된 휴대폰 번호입니다.");
+            }
+        }
     }
 
-    public UserDTO findLoggedInUser(String email, String password) {
-        UserDTO user = userMapper.findByEmail(email);
+    public void checkUserEmailDuplication(String userEmail) {
+        if (userMapper.emailExists(userEmail) == 1) {
+            throw new DuplicatedEmailException("중복된 이메일입니다.");
+        }
+    }
+
+    public User findLoggedInUser(String email, String password) {
+        User user = userMapper.findByEmail(email);
 
         if (user == null) {
             throw new NotFoundException();
@@ -39,14 +52,6 @@ public class UserService {
             throw new InvalidPasswordException();
         }
         return user;
-    }
-
-    public boolean getUser(int userId) {
-        return userMapper.findById(userId);
-    }
-
-    public boolean isDuplicatedEmail(String email) {
-        return userMapper.emailExists(email) == 1;
     }
 
     private String encryptedPassword(String password) {

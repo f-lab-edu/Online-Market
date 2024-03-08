@@ -1,22 +1,26 @@
 package com.example.onlinemarket.user.service;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.when;
 
-import com.example.onlinemarket.common.exception.DuplicatedException;
+import com.example.onlinemarket.common.exception.DuplicatedEmailException;
+import com.example.onlinemarket.common.exception.DuplicatedPhoneException;
 import com.example.onlinemarket.common.exception.InvalidPasswordException;
 import com.example.onlinemarket.common.exception.NotFoundException;
 import com.example.onlinemarket.common.utils.PasswordEncoder;
 import com.example.onlinemarket.domain.user.dto.LoginRequest;
 import com.example.onlinemarket.domain.user.dto.SignUpRequest;
-import com.example.onlinemarket.domain.user.dto.UserDTO;
+import com.example.onlinemarket.domain.user.entity.User;
 import com.example.onlinemarket.domain.user.mapper.UserMapper;
 import com.example.onlinemarket.domain.user.service.UserService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -34,53 +39,89 @@ class UserServiceTest {
     private UserMapper userMapper;
     @Mock
     private PasswordEncoder passwordEncoder;
-    private UserDTO testUser;
+    private User testUser;
     private SignUpRequest signUpRequest;
     private LoginRequest loginRequest;
 
     @BeforeEach
     void setUp() {
-        String encryptedPassword = "encryptedPassword";
-        testUser = new UserDTO("test@example.com", encryptedPassword, "name", "01012341234");
-        signUpRequest = new SignUpRequest("test@example.com", "test1234", "name", "01012341234");
+        signUpRequest = SignUpRequest.builder()
+            .email("test@example.com")
+            .password("testPassword")
+            .name("Lee GeonHui")
+            .phone("01012345678")
+            .build();
+
+        testUser = User.builder()
+            .id(1L)
+            .email("test@example.com")
+            .password(passwordEncoder.encryptSHA256("testPassword"))
+            .name("name")
+            .phone("01012341234")
+            .build();
+
         loginRequest = new LoginRequest("test@example.com", "test1234");
     }
 
     @Test
     @DisplayName("회원가입에 성공한다.")
-    void signUp_Success() {
-        when(userMapper.emailExists("test@example.com")).thenReturn(0);
-        when(passwordEncoder.encryptSHA256("test1234")).thenReturn("encodedPassword");
+    void signUpSuccess() {
+        willDoNothing().given(userMapper).insertUser(any(User.class));
 
         userService.signUp(signUpRequest);
 
-        verify(userMapper).insertUser(any(UserDTO.class));
+        then(userMapper).should().insertUser(any(User.class));
     }
 
     @Test
-    @DisplayName("해당 유저의 email이 존재하는지 확인한다.")
-    void exists_By_Email_True() {
-        when(userMapper.emailExists(signUpRequest.getEmail())).thenReturn(1);
+    @DisplayName("이메일 중복으로 회원가입에 실패한다.")
+    void signUpWithDuplicatedUserEmail() {
+        // given
+        DuplicateKeyException exception = new DuplicateKeyException(signUpRequest.getEmail());
+        willThrow(exception).given(userMapper).insertUser(any(User.class));
 
-        boolean exists = userService.isDuplicatedEmail(signUpRequest.getEmail());
-        Assertions.assertTrue(exists);
+        // when & then
+        assertThatThrownBy(() -> userService.signUp(signUpRequest))
+            .isInstanceOf(DuplicatedEmailException.class)
+            .hasMessageContaining("중복된 이메일입니다.");
+        then(userMapper).should().insertUser(any(User.class));
     }
 
     @Test
-    @DisplayName("해당 유저의 email이 존재하지 않는다.")
-    void exists_By_Email_False() {
-        when(userMapper.emailExists(signUpRequest.getEmail())).thenReturn(0);
+    @DisplayName("휴대폰 번호 중복으로 회원가입에 실패한다.")
+    void signUpWitDuplicatedPhone() {
+        // given
+        DuplicateKeyException exception = new DuplicateKeyException(signUpRequest.getPhone());
+        willThrow(exception).given(userMapper).insertUser(any(User.class));
 
-        boolean exists = userService.isDuplicatedEmail(signUpRequest.getEmail());
-        Assertions.assertFalse(exists);
+        // when & then
+        assertThatThrownBy(() -> userService.signUp(signUpRequest))
+            .isInstanceOf(DuplicatedPhoneException.class)
+            .hasMessageContaining("중복된 휴대폰 번호입니다.");
+        then(userMapper).should().insertUser(any(User.class));
     }
 
     @Test
-    @DisplayName("이메일 중복으로 회원가입에 실패한다")
-    void signUp_Fail_DuplicateEmail() {
-        when(userMapper.emailExists(signUpRequest.getEmail())).thenReturn(1);
+    @DisplayName("이메일 중복체크에 성공한다.")
+    void checkUserEmailDuplicationSuccess() {
+        given(userMapper.emailExists(signUpRequest.getEmail())).willReturn(0);
 
-        assertThrows(DuplicatedException.class, () -> userService.signUp(signUpRequest));
+        userService.checkUserEmailDuplication(signUpRequest.getEmail());
+
+        then(userMapper).should().emailExists(signUpRequest.getEmail());
+    }
+
+    @Test
+    @DisplayName("이메일 중복으로 이메일 중복체크에 실패한다.")
+    void checkUserEmailDuplicationWithDuplicatedUserEmail() {
+        // given
+        given(userMapper.emailExists(signUpRequest.getEmail())).willReturn(1);
+
+        // when & then
+        assertThatThrownBy(() -> userService.checkUserEmailDuplication(signUpRequest.getEmail()))
+            .isInstanceOf(DuplicatedEmailException.class)
+            .hasMessageContaining("중복된 이메일입니다.");
+        then(userMapper).should().emailExists(signUpRequest.getEmail());
     }
 
     @Test
@@ -88,10 +129,10 @@ class UserServiceTest {
     void check_Login_Password_Equals_Success() {
         when(userMapper.findByEmail(loginRequest.getEmail())).thenReturn(testUser);
         when(passwordEncoder.encryptSHA256(loginRequest.getPassword())).thenReturn(
-                testUser.getPassword());
+            testUser.getPassword());
 
-        UserDTO result = userService.findLoggedInUser(loginRequest.getEmail(),
-                loginRequest.getPassword());
+        User result = userService.findLoggedInUser(loginRequest.getEmail(),
+            loginRequest.getPassword());
 
         assertNotNull(result);
         assertEquals(loginRequest.getEmail(), result.getEmail());
@@ -104,7 +145,7 @@ class UserServiceTest {
         when(passwordEncoder.encryptSHA256("wrongPassword")).thenReturn("wrongEncodedPassword");
 
         assertThrows(InvalidPasswordException.class,
-                () -> userService.findLoggedInUser(loginRequest.getEmail(), "wrongPassword"));
+            () -> userService.findLoggedInUser(loginRequest.getEmail(), "wrongPassword"));
     }
 
     @Test
@@ -113,8 +154,8 @@ class UserServiceTest {
         when(userMapper.findByEmail(loginRequest.getEmail())).thenReturn(null);
 
         assertThrows(NotFoundException.class,
-                () -> userService.findLoggedInUser(loginRequest.getEmail(),
-                        loginRequest.getPassword()));
+            () -> userService.findLoggedInUser(loginRequest.getEmail(),
+                loginRequest.getPassword()));
     }
 }
 

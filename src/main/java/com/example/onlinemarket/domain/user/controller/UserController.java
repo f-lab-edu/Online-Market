@@ -2,16 +2,18 @@ package com.example.onlinemarket.domain.user.controller;
 
 import com.example.onlinemarket.domain.user.dto.LoginRequest;
 import com.example.onlinemarket.domain.user.dto.SignUpRequest;
-import com.example.onlinemarket.domain.user.dto.UserDTO;
+import com.example.onlinemarket.domain.user.entity.User;
 import com.example.onlinemarket.domain.user.service.LoginService;
 import com.example.onlinemarket.domain.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RequestMapping("/users")
@@ -23,15 +25,21 @@ public class UserController {
     private final LoginService loginService;
 
     @PostMapping
-    public ResponseEntity<Void> signUp(@RequestBody @Valid SignUpRequest request) {
-        userService.signUp(request);
+    public ResponseEntity<Void> signUp(@RequestBody @Valid SignUpRequest signUpRequest) {
+        userService.signUp(signUpRequest);
         return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @GetMapping("/check-duplication")
+    public ResponseEntity<Void> checkUserIdDuplication(@RequestParam String userEmail) {
+        userService.checkUserEmailDuplication(userEmail);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping("/login")
     public ResponseEntity<Void> login(@RequestBody @Valid LoginRequest loginRequest) {
-        UserDTO user = userService.findLoggedInUser(loginRequest.getEmail(),
-                loginRequest.getPassword());
+        User user = userService.findLoggedInUser(loginRequest.getEmail(),
+            loginRequest.getPassword());
         loginService.login(user.getId());
         return new ResponseEntity<>(HttpStatus.OK);
     }
