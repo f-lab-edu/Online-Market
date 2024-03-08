@@ -1,17 +1,14 @@
 package com.example.onlinemarket.domain.user.mapper;
 
-import com.example.onlinemarket.domain.user.dto.UserDTO;
+import com.example.onlinemarket.domain.user.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface UserMapper {
 
-    int insertUser(UserDTO userdto);
+    void insertUser(User user);
 
-    int emailExists(String email);
+    int emailExists(String userEmail);
 
-    UserDTO findByEmail(String email);
-
-    boolean findById(long id);
-
+    User findByEmail(String email);
 }
