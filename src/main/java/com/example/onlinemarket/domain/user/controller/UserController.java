@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@RequestMapping("/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @RestController
 public class UserController {
@@ -31,16 +31,15 @@ public class UserController {
     }
 
     @GetMapping("/check-duplication")
-    public ResponseEntity<Void> checkUserIdDuplication(@RequestParam String userEmail) {
+    public ResponseEntity<Void> checkUserEmailDuplication(@RequestParam String userEmail) {
         userService.checkUserEmailDuplication(userEmail);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping("/login")
     public ResponseEntity<Void> login(@RequestBody @Valid LoginRequest loginRequest) {
-        User user = userService.findLoggedInUser(loginRequest.getEmail(),
-            loginRequest.getPassword());
-        loginService.login(user.getId());
+        User user = userService.findLoggedInUser(loginRequest);
+        loginService.login(user.getEmail());
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

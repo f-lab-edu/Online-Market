@@ -1,14 +1,17 @@
 package com.example.onlinemarket.user.service;
 
-import static com.example.onlinemarket.domain.user.constants.SessionKey.LOGGED_IN_USER;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willDoNothing;
 
+import com.example.onlinemarket.common.utils.PasswordEncryptor;
+import com.example.onlinemarket.domain.user.constants.SessionKey;
 import com.example.onlinemarket.domain.user.entity.User;
 import com.example.onlinemarket.domain.user.service.SessionLoginService;
-import jakarta.servlet.http.HttpSession;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,52 +19,76 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpSession;
 
 @ExtendWith(MockitoExtension.class)
 class SessionLoginServiceTest {
 
     @Mock
-    private HttpSession mockHttpSession;
+    private MockHttpSession mockSession;
+
+    @Mock
+    private PasswordEncryptor passwordEncryptor;
+
     @InjectMocks
-    private SessionLoginService loginService;
-    User testUser;
+    private SessionLoginService sessionLoginService;
+
+    private User testUser;
 
     @BeforeEach
     void setUp() {
         testUser = User.builder()
-            .id(1)
-            .email("test@example.com")
-            .password("test1234")
-            .name("Test User")
-            .phone("01012345678")
+            .id(1L)
+            .email("testUserEmail")
+            .password(passwordEncryptor.encrypt("testPassword"))
             .build();
-        mockHttpSession.setAttribute(LOGGED_IN_USER, null);
     }
 
     @Test
-    @DisplayName("로그인 시 세션에 사용자 ID가 저장되어야 한다")
-    void login_ShouldSetUserIdInSession() {
-        loginService.login(testUser.getId());
+    @DisplayName("사용자 이메일로 로그인 성공 시 세션에 이메일 저장")
+    void login_ShouldStoreEmailInSession() {
+        willDoNothing().given(mockSession).setAttribute(SessionKey.LOGGED_IN_USER, testUser.getEmail());
+        given(mockSession.getAttribute(SessionKey.LOGGED_IN_USER)).willReturn(testUser.getEmail());
 
-        verify(mockHttpSession).setAttribute(LOGGED_IN_USER, testUser.getId());
+        sessionLoginService.login(testUser.getEmail());
+
+        then(mockSession).should().setAttribute(SessionKey.LOGGED_IN_USER, testUser.getEmail());
+        assertEquals(mockSession.getAttribute(SessionKey.LOGGED_IN_USER), testUser.getEmail());
     }
 
     @Test
-    @DisplayName("세션 설정 시 예외가 발생하면 에러가 발생한다.")
-    void login_ShouldThrowException_When_SessionSettingFails() {
-        doThrow(new RuntimeException("세션 설정 실패")).when(mockHttpSession)
-            .setAttribute(LOGGED_IN_USER, testUser.getId());
+    @DisplayName("사용자 로그아웃 시 세션에서 이메일 제거")
+    void logout_ShouldRemoveEmailFromSession() {
+        willDoNothing().given(mockSession).removeAttribute(SessionKey.LOGGED_IN_USER);
+        mockSession.setAttribute(SessionKey.LOGGED_IN_USER, testUser.getEmail());
 
-        assertThrows(RuntimeException.class, () -> loginService.login(testUser.getId()));
+        sessionLoginService.logout();
+
+        then(mockSession).should().removeAttribute(SessionKey.LOGGED_IN_USER);
+        assertNull(mockSession.getAttribute(SessionKey.LOGGED_IN_USER));
     }
+
 
     @Test
-    @DisplayName("로그아웃에 성공한다")
-    void logout_Success() {
-        mockHttpSession.setAttribute(LOGGED_IN_USER, testUser.getId());
+    @DisplayName("세션에 저장된 사용자의 이메일을 가져오는데 성공한다.")
+    void getLoginUserEmail_Success() {
+        given(mockSession.getAttribute(SessionKey.LOGGED_IN_USER)).willReturn(testUser.getEmail());
 
-        loginService.logout();
+        Optional<String> result = sessionLoginService.getLoginUserEmail();
 
-        assertNull(mockHttpSession.getAttribute(LOGGED_IN_USER));
+        then(mockSession).should().getAttribute(SessionKey.LOGGED_IN_USER);
+        assertEquals(testUser.getEmail(), result.orElse(""));
     }
+
+
+    @Test
+    @DisplayName("로그인되지 않은 상태에서 사용자 이메일 조회 시 비어있는 Optional 반환")
+    void getLoginUserEmail_WhenNotLoggedIn_ShouldReturnEmptyOptional() {
+        given(mockSession.getAttribute(SessionKey.LOGGED_IN_USER)).willReturn(null);
+
+        Optional<String> result = sessionLoginService.getLoginUserEmail();
+
+        assertThat(result).isEmpty();
+    }
+
 }

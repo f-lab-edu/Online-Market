@@ -1,26 +1,24 @@
 package com.example.onlinemarket.user.service;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.when;
 
-import com.example.onlinemarket.common.exception.DuplicatedEmailException;
-import com.example.onlinemarket.common.exception.DuplicatedPhoneException;
-import com.example.onlinemarket.common.exception.InvalidPasswordException;
-import com.example.onlinemarket.common.exception.NotFoundException;
-import com.example.onlinemarket.common.utils.PasswordEncoder;
+import com.example.onlinemarket.common.utils.PasswordEncryptor;
 import com.example.onlinemarket.domain.user.dto.LoginRequest;
 import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.entity.User;
+import com.example.onlinemarket.domain.user.exception.DuplicatedEmailException;
+import com.example.onlinemarket.domain.user.exception.DuplicatedPhoneException;
+import com.example.onlinemarket.domain.user.exception.PasswordMisMatchException;
+import com.example.onlinemarket.domain.user.exception.UserEmailNotFoundException;
 import com.example.onlinemarket.domain.user.mapper.UserMapper;
 import com.example.onlinemarket.domain.user.service.UserService;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,7 +36,7 @@ class UserServiceTest {
     @Mock
     private UserMapper userMapper;
     @Mock
-    private PasswordEncoder passwordEncoder;
+    private PasswordEncryptor passwordEncryptor;
     private User testUser;
     private SignUpRequest signUpRequest;
     private LoginRequest loginRequest;
@@ -48,19 +46,16 @@ class UserServiceTest {
         signUpRequest = SignUpRequest.builder()
             .email("test@example.com")
             .password("testPassword")
-            .name("Lee GeonHui")
             .phone("01012345678")
             .build();
+
+        loginRequest = new LoginRequest("testUserId", "testPassword");
 
         testUser = User.builder()
             .id(1L)
             .email("test@example.com")
-            .password(passwordEncoder.encryptSHA256("testPassword"))
-            .name("name")
-            .phone("01012341234")
+            .password(passwordEncryptor.encrypt("testPassword"))
             .build();
-
-        loginRequest = new LoginRequest("test@example.com", "test1234");
     }
 
     @Test
@@ -125,37 +120,32 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("이메일에 알맞은 패스워드인지 확인한다.")
-    void check_Login_Password_Equals_Success() {
-        when(userMapper.findByEmail(loginRequest.getEmail())).thenReturn(testUser);
-        when(passwordEncoder.encryptSHA256(loginRequest.getPassword())).thenReturn(
-            testUser.getPassword());
+    @DisplayName("존재하지 않는 이메일로 로그인 시도 시 로그인 실패")
+    void loginFailureWithNonExistentEmail() {
+        // given
+        given(userMapper.findByEmail(anyString())).willReturn(Optional.empty());
 
-        User result = userService.findLoggedInUser(loginRequest.getEmail(),
-            loginRequest.getPassword());
-
-        assertNotNull(result);
-        assertEquals(loginRequest.getEmail(), result.getEmail());
+        // when & then
+        assertThatThrownBy(() -> userService.findLoggedInUser(loginRequest))
+            .isInstanceOf(UserEmailNotFoundException.class)
+            .hasMessageContaining("등록되지 않은 이메일입니다.");
+        then(userMapper).should().findByEmail(loginRequest.getEmail());
     }
 
-    @Test
-    @DisplayName("이메일에 따른 패스워드가 아니어서 실패한다.")
-    void check_Login_Password_Not_Match_Fails() {
-        when(userMapper.findByEmail(loginRequest.getEmail())).thenReturn(testUser);
-        when(passwordEncoder.encryptSHA256("wrongPassword")).thenReturn("wrongEncodedPassword");
-
-        assertThrows(InvalidPasswordException.class,
-            () -> userService.findLoggedInUser(loginRequest.getEmail(), "wrongPassword"));
-    }
 
     @Test
-    @DisplayName("존재하지 않는 이메일로 로그인을 시도하면 예외가 발생한다")
-    void login_Fail_If_UserDoesNotExist() {
-        when(userMapper.findByEmail(loginRequest.getEmail())).thenReturn(null);
+    @DisplayName("비밀번호 오기입으로 로그인에 실패한다.")
+    void loginWithInvalidPassword() {
+        // given
+        given(userMapper.findByEmail(loginRequest.getEmail())).willReturn(Optional.ofNullable(testUser));
+        given(passwordEncryptor.isMatch(loginRequest.getPassword(), testUser.getPassword())).willReturn(false);
 
-        assertThrows(NotFoundException.class,
-            () -> userService.findLoggedInUser(loginRequest.getEmail(),
-                loginRequest.getPassword()));
+        // when & then
+        assertThatThrownBy(() -> userService.findLoggedInUser(loginRequest))
+            .isInstanceOf(PasswordMisMatchException.class)
+            .hasMessageContaining("비밀번호가 일치하지 않습니다.");
+        then(userMapper).should().findByEmail(loginRequest.getEmail());
+        then(passwordEncryptor).should().isMatch(loginRequest.getPassword(), testUser.getPassword());
     }
 }
 

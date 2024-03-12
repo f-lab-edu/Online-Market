@@ -2,19 +2,21 @@ package com.example.onlinemarket.user.controller;
 
 import static com.example.onlinemarket.domain.user.constants.SessionKey.LOGGED_IN_USER;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.onlinemarket.common.exception.DuplicatedEmailException;
-import com.example.onlinemarket.common.exception.NotFoundException;
 import com.example.onlinemarket.domain.user.controller.UserController;
 import com.example.onlinemarket.domain.user.dto.LoginRequest;
 import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.entity.User;
+import com.example.onlinemarket.domain.user.exception.DuplicatedEmailException;
+import com.example.onlinemarket.domain.user.exception.DuplicatedPhoneException;
+import com.example.onlinemarket.domain.user.exception.PasswordMisMatchException;
+import com.example.onlinemarket.domain.user.exception.UserEmailNotFoundException;
 import com.example.onlinemarket.domain.user.service.LoginService;
 import com.example.onlinemarket.domain.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -64,27 +66,12 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("중복된 이메일이나 휴대폰 번호로 회원가입 시도 시 409 Conflict 상태 코드를 반환한다.")
-    void signUpFail() throws Exception {
-        // given
-        doThrow(new DuplicatedEmailException()).when(userService).signUp(any(SignUpRequest.class));
-
-        // when & then
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/users")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(signUpRequest)))
-            .andExpect(status().isConflict());
-    }
-
-
-    @Test
     @DisplayName("회원가입에 요청이 올바르면 201 Created 상태코드를 반환한다.")
     void signUpSuccess() throws Exception {
 
         // when & then
         mockMvc.perform(MockMvcRequestBuilders
-                .post("/users")
+                .post("/api/v1/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signUpRequest)))
             .andExpect(status().isCreated());
@@ -94,7 +81,53 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("이메일 중복 검사 시 중복된 이메일이 있으면 409 Conflict를 반환한다.")
+    @DisplayName("중복된 이메일로 회원가입 실패하고 상태코드 409를 반환")
+    void signUpFailureWithDuplicatedEmail() throws Exception {
+        // given
+        doThrow(new DuplicatedEmailException()).when(userService).signUp(any(SignUpRequest.class));
+
+        // when & then
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signUpRequest)))
+            .andExpect(status().isConflict());
+
+        // verify
+        Mockito.verify(userService).signUp(any(SignUpRequest.class));
+    }
+
+    @Test
+    @DisplayName("중복된 휴대폰 번호로 회원가입 실패하고 상태코드 409 반환")
+    void signUpFailureWithDuplicatedPhoneNumber() throws Exception {
+        // given
+        doThrow(new DuplicatedPhoneException()).when(userService).signUp(any(SignUpRequest.class));
+
+        // when & then
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signUpRequest)))
+            .andExpect(status().isConflict());
+
+        // verify
+        Mockito.verify(userService).signUp(any(SignUpRequest.class));
+    }
+
+    @Test
+    @DisplayName("이메일 중복 체크 시 성공하여 상태코드 200 OK 반환")
+    void checkEmailDuplicationSuccess() throws Exception {
+        // given
+        String userEmail = "test@example.com";
+        doNothing().when(userService).checkUserEmailDuplication(userEmail);
+
+        // when & then
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/users/check-duplication")
+                .param("userEmail", userEmail))
+            .andExpect(status().isOk());
+    }
+
+
+    @Test
+    @DisplayName("이메일 중복 체크 시 중복된 이메일이 있으면 409 Conflict를 반환한다.")
     void checkUserEmailDuplicationFail() throws Exception {
         // given
         String userEmail = "test@example.com";
@@ -102,68 +135,82 @@ class UserControllerTest {
 
         // when & then
         mockMvc.perform(MockMvcRequestBuilders
-                .get("/users/check-duplication")
+                .get("/api/v1/users/check-duplication")
                 .param("userEmail", userEmail))
             .andExpect(status().isConflict());
     }
 
+
     @Test
-    @DisplayName("이메일 중복 검사를 성공적으로 수하면 200 Ok 상태코드를 반환한다.")
-    void checkUserEmailDuplicationSuccess() throws Exception {
+    @DisplayName("올바른 로그인 요청시 200 OK 상태 코드를 반환한다.")
+    void loginSuccess() throws Exception {
         // given
-        String userEmail = "test1234@example.com";
+        when(userService.findLoggedInUser(any(LoginRequest.class))).thenReturn(user);
+        doNothing().when(loginService).login(user.getEmail());
 
         // when & then
         mockMvc.perform(MockMvcRequestBuilders
-                .get("/users/check-duplication")
-                .param("userEmail", userEmail))
+                .post("/api/v1/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest)))
             .andExpect(status().isOk());
 
         // verify
-        Mockito.verify(userService).checkUserEmailDuplication(userEmail);
+        Mockito.verify(userService).findLoggedInUser(loginRequest);
+        Mockito.verify(loginService).login(user.getEmail());
     }
 
     @Test
-    @DisplayName("로그인 성공하면 200 Ok를 반환한다.")
-    void login_Success() throws Exception {
-        given(userService.findLoggedInUser(loginRequest.getEmail(),
-            loginRequest.getPassword())).willReturn(user);
+    @DisplayName("존재하지 않는 이메일로 로그인 시도 시 로그인 실패")
+    void loginFailureWithEmailNotFound() throws Exception {
+        // given
+        LoginRequest nonExistentEmailLoginRequest = new LoginRequest("nonexistent@example.com", "password");
 
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/users/login")
+        given(userService.findLoggedInUser(any(LoginRequest.class)))
+            .willThrow(new UserEmailNotFoundException());
+
+        // when & then
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/users/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest)))
-            .andExpect(status().isOk());
-
-        Mockito.verify(loginService).login(user.getId());
-    }
-
-    @Test
-    @DisplayName("로그인 실패하면 404 Not Found를 반환한다.")
-    void login_Fail_Wrong_Credentials() throws Exception {
-        given(userService.findLoggedInUser(loginRequest.getEmail(),
-            loginRequest.getPassword())).willThrow(new NotFoundException());
-
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/users/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest)))
+                .content(objectMapper.writeValueAsString(nonExistentEmailLoginRequest)))
             .andExpect(status().isNotFound());
 
-        Mockito.verify(loginService, Mockito.never()).login((int) anyLong());
+        // verify
+        Mockito.verify(userService, Mockito.times(1)).findLoggedInUser(any(LoginRequest.class));
+    }
+
+
+    @Test
+    @DisplayName("잘못된 비밀번호로 로그인 시도 시 로그인 실패")
+    void loginFailureWithWrongPassword() throws Exception {
+        // given
+        LoginRequest wrongPasswordLoginRequest = new LoginRequest("test1234@example.com", "wrongPassword");
+        given(userService.findLoggedInUser(any(LoginRequest.class)))
+            .willThrow(new PasswordMisMatchException());
+
+        // when & then
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/users/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(wrongPasswordLoginRequest)))
+            .andExpect(status().isBadRequest());
+
+        // verify
+        Mockito.verify(userService, Mockito.times(1)).findLoggedInUser(any(LoginRequest.class));
     }
 
     @Test
-    @DisplayName("로그아웃을 성공하면 200 Ok를 반환한다.")
-    void logout_Success() throws Exception {
-        willDoNothing().given(loginService).logout();
+    @DisplayName("로그아웃 요청시 200 OK 상태 코드를 반환한다.")
+    void logoutSuccess() throws Exception {
+        // given
+        doNothing().when(loginService).logout();
 
+        // when & then
         mockMvc.perform(MockMvcRequestBuilders
-                .post("/users/logout")
-                .contentType(MediaType.APPLICATION_JSON)
+                .post("/api/v1/users/logout")
                 .session(mockHttpSession))
             .andExpect(status().isOk());
 
+        // verify
         Mockito.verify(loginService).logout();
     }
 }
