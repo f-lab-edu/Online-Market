@@ -1,8 +1,8 @@
 package com.example.onlinemarket.domain.user.service;
 
-import com.example.onlinemarket.common.exception.UnauthorizedException;
 import com.example.onlinemarket.domain.user.constants.SessionKey;
 import jakarta.servlet.http.HttpSession;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,9 +13,8 @@ public class SessionLoginService implements LoginService {
     private final HttpSession session;
 
     @Override
-    public void login(long id) {
-
-        session.setAttribute(SessionKey.LOGGED_IN_USER, id);
+    public void login(String email) {
+        session.setAttribute(SessionKey.LOGGED_IN_USER, email);
     }
 
     @Override
@@ -24,11 +23,7 @@ public class SessionLoginService implements LoginService {
     }
 
     @Override
-    public long getLoginUserId() {
-        Object sessionId = session.getAttribute(SessionKey.LOGGED_IN_USER);
-        if (sessionId == null) {
-            throw new UnauthorizedException();
-        }
-        return (int) sessionId;
+    public Optional<String> getLoginUserEmail() {
+        return Optional.ofNullable((String) session.getAttribute(SessionKey.LOGGED_IN_USER));
     }
 }

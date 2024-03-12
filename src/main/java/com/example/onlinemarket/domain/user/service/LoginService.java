@@ -1,14 +1,15 @@
 package com.example.onlinemarket.domain.user.service;
 
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 @Service
 public interface LoginService {
 
-    void login(long id);
+    void login(String email);
 
     void logout();
 
-    long getLoginUserId();
+    Optional<String> getLoginUserEmail();
 
 }

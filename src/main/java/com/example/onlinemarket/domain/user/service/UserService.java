@@ -1,12 +1,13 @@
 package com.example.onlinemarket.domain.user.service;
 
-import com.example.onlinemarket.common.exception.DuplicatedEmailException;
-import com.example.onlinemarket.common.exception.DuplicatedPhoneException;
-import com.example.onlinemarket.common.exception.InvalidPasswordException;
-import com.example.onlinemarket.common.exception.NotFoundException;
-import com.example.onlinemarket.common.utils.PasswordEncoder;
+import com.example.onlinemarket.common.utils.PasswordEncryptor;
+import com.example.onlinemarket.domain.user.dto.LoginRequest;
 import com.example.onlinemarket.domain.user.dto.SignUpRequest;
 import com.example.onlinemarket.domain.user.entity.User;
+import com.example.onlinemarket.domain.user.exception.DuplicatedEmailException;
+import com.example.onlinemarket.domain.user.exception.DuplicatedPhoneException;
+import com.example.onlinemarket.domain.user.exception.PasswordMisMatchException;
+import com.example.onlinemarket.domain.user.exception.UserEmailNotFoundException;
 import com.example.onlinemarket.domain.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -17,10 +18,10 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     private final UserMapper userMapper;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncryptor passwordEncryptor;
 
     public void signUp(SignUpRequest signUpRequest) {
-        String password = encryptedPassword(signUpRequest.getPassword());
+        String password = passwordEncryptor.encrypt(signUpRequest.getPassword());
         User newUser = signUpRequest.toEntity(password);
 
         try {
@@ -41,20 +42,15 @@ public class UserService {
         }
     }
 
-    public User findLoggedInUser(String email, String password) {
-        User user = userMapper.findByEmail(email);
+    public User findLoggedInUser(LoginRequest loginRequest) {
+        User loginUser = userMapper.findByEmail(loginRequest.getEmail())
+            .orElseThrow(() -> new UserEmailNotFoundException("등록되지 않은 이메일입니다."));
 
-        if (user == null) {
-            throw new NotFoundException();
+        boolean isValidPassword = passwordEncryptor.isMatch(loginRequest.getPassword(), loginUser.getPassword());
+        if (!isValidPassword) {
+            throw new PasswordMisMatchException("비밀번호가 일치하지 않습니다.");
         }
 
-        if (!encryptedPassword(password).equals(user.getPassword())) {
-            throw new InvalidPasswordException();
-        }
-        return user;
-    }
-
-    private String encryptedPassword(String password) {
-        return passwordEncoder.encryptSHA256(password);
+        return loginUser;
     }
 }
