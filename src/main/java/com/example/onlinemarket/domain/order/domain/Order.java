@@ -1,44 +1,48 @@
 package com.example.onlinemarket.domain.order.domain;
 
-import com.example.onlinemarket.domain.order.dto.OrderDetailDTO;
 import com.example.onlinemarket.domain.order.eunm.OrderStatus;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Random;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Order {
 
     private Long id;
     private Long userId;
-    private Double totalPrice;
-    private LocalDateTime orderTime;
+    private String orderNumber;
     private OrderStatus status;
-    private List<OrderDetailDTO> orderDetails;
+    private Long totalPrice;
+    private LocalDateTime orderTime;
+    private List<OrderDetail> orderDetails;
 
-    @Builder
-    public Order(Long id, Long userId, Double totalPrice, LocalDateTime orderTime, OrderStatus status, List<OrderDetailDTO> orderDetails) {
-
-        this.id = id;
+    public Order(Long userId, List<OrderDetail> orderDetails) {
         this.userId = userId;
-        this.totalPrice = totalPrice;
-        this.orderTime = orderTime;
-        this.status = status;
-        this.orderDetails = orderDetails;
+        this.orderNumber = generateOrderNumber();
+        this.status = OrderStatus.READY;
+        this.totalPrice = calculateTotalPrice(orderDetails);
+        this.orderTime = LocalDateTime.now();
     }
 
-    public void setTotalPrice(double totalPrice) {
-        this.totalPrice = totalPrice;
+    private String generateOrderNumber() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        String datetime = LocalDateTime.now().format(formatter);
+        int randomNumber = new Random().nextInt(9000) + 1000;
+        return datetime + userId + randomNumber;
     }
 
-    public double getTotalPrice() {
-        return totalPrice;
+    private Long calculateTotalPrice(List<OrderDetail> orderDetails) {
+        return orderDetails.stream()
+            .mapToLong(detail -> detail.getProductPrice() * detail.getProductQuantity())
+            .sum();
     }
 
-    public void setStatus(OrderStatus status) {
-        this.status = status;
-    }
 }

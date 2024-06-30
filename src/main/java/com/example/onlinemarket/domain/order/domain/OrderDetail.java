@@ -1,29 +1,26 @@
 package com.example.onlinemarket.domain.order.domain;
 
-import com.example.onlinemarket.domain.order.eunm.OrderStatus;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@Builder
+@AllArgsConstructor
 public class OrderDetail {
 
     private Long id;
     private Long orderId;
     private Long productId;
     private String productName;
-    private double productPrice;
-    private long productQuantity;
-    private OrderStatus status;
+    private Long productPrice;
+    private Long productQuantity;
 
-    @Builder
-    public OrderDetail(Long orderId, Long productId, String productName, double productPrice, long productQuantity) {
 
+    public void setOrderId(Long orderId) {
         this.orderId = orderId;
-        this.productId = productId;
-        this.productName = productName;
-        this.productPrice = productPrice;
-        this.productQuantity = productQuantity;
+
     }
 }
