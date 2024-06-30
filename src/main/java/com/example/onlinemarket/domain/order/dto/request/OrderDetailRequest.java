@@ -1,9 +1,9 @@
-package com.example.onlinemarket.domain.order.dto;
+package com.example.onlinemarket.domain.order.dto.request;
+
 
 import com.example.onlinemarket.domain.order.domain.OrderDetail;
-import com.example.onlinemarket.domain.product.dto.ProductDTO;
+import com.example.onlinemarket.domain.product.entity.Product;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,30 +13,19 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderDetailDTO {
+public class OrderDetailRequest {
 
-    private long id;
-
-    @NotNull
-    private Long orderId;
-
-    @NotNull
     private Long productId;
 
     @Min(1)
-    private int quantity;
+    private Long productQuantity;
 
-    @NotNull
-    private Double price;
-
-    public OrderDetail toEntity(Long orderId, ProductDTO product) {
-
+    public OrderDetail toEntity(Product product) {
         return OrderDetail.builder()
-            .orderId(orderId)
             .productId(productId)
             .productName(product.getName())
             .productPrice(product.getPrice())
-            .productQuantity(product.getQuantity())
+            .productQuantity(productQuantity)
             .build();
     }
 }
