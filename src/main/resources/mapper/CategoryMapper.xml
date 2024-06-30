@@ -4,26 +4,27 @@
 
 <mapper namespace="com.example.onlinemarket.domain.category.mapper.CategoryMapper">
 
-  <select id="findAll" resultType="com.example.onlinemarket.domain.Category">
+  <select id="findAll" resultType="com.example.onlinemarket.domain.category.entity.Category">
     SELECT *
     FROM Category
   </select>
 
-  <select id="findById" parameterType="long" resultType="com.example.onlinemarket.domain.Category">
+  <select id="findById" parameterType="long"
+    resultType="com.example.onlinemarket.domain.category.entity.Category">
     SELECT *
     FROM Category
     WHERE id = #{id}
   </select>
 
   <insert id="insert" useGeneratedKeys="true" keyProperty="id"
-    parameterType="com.example.onlinemarket.domain.Category">
-    INSERT INTO Category (name)
-    VALUES (#{name})
+    parameterType="com.example.onlinemarket.domain.category.entity.Category">
+    INSERT INTO Category (name, createDate, updateDate)
+    VALUES (#{name}, NOW(), NOW())
   </insert>
 
-  <update id="updateName" parameterType="com.example.onlinemarket.domain.Category">
+  <update id="updateName" parameterType="com.example.onlinemarket.domain.category.entity.Category">
     UPDATE Category
-    SET name = #{name}
+    SET name = #{newName}
     WHERE id = #{id}
   </update>
 
@@ -32,5 +33,16 @@
     FROM Category
     WHERE id = #{id}
   </delete>
+
+  <select id="existsByName" parameterType="String" resultType="boolean">
+    SELECT EXISTS
+               (SELECT 1 FROM Category where name = #{name})
+  </select>
+
+  <select id="selectCategoryName" parameterType="Long" resultType="String">
+    SELECT name
+    FROM Category
+    WHERE id = #{categoryId}
+  </select>
 
 </mapper>

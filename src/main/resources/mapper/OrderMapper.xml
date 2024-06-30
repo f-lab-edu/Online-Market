@@ -6,8 +6,8 @@
 
   <insert id="insert" useGeneratedKeys="true" keyProperty="id"
     parameterType="com.example.onlinemarket.domain.order.domain.Order">
-    INSERT INTO Order (user_id, total_price, order_time, status)
-    VALUES (#{userId}, #{totalPrice}, now(), #{status})
+    INSERT INTO `Order` (userId, orderNumber, status, totalPrice, orderTime)
+    VALUES (#{userId}, #{orderNumber}, #{status}, #{totalPrice}, now())
   </insert>
 
 </mapper>
