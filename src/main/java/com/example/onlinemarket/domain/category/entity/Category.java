@@ -1,6 +1,5 @@
-package com.example.onlinemarket.domain.category.dto;
+package com.example.onlinemarket.domain.category.entity;
 
-import com.example.onlinemarket.domain.category.entity.Category;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,17 +10,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @AllArgsConstructor
-public class CategoryDto {
+public class Category {
 
     private Long id;
     private String name;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
 
-    public static CategoryDto of(Category category) {
-        return CategoryDto.builder()
-            .id(category.getId())
-            .name(category.getName())
-            .build();
+    public void updateName(String name) {
+        this.name = name;
     }
 }
