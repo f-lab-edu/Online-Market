@@ -39,28 +39,29 @@ class SessionLoginServiceTest {
     void setUp() {
         testUser = User.builder()
             .id(1L)
+            .userId("dnzp75")
             .email("testUserEmail")
-            .password(passwordEncryptor.encrypt("testPassword"))
+            .password(passwordEncryptor.encode("testPassword"))
             .build();
     }
 
     @Test
-    @DisplayName("사용자 이메일로 로그인 성공 시 세션에 이메일 저장")
-    void login_ShouldStoreEmailInSession() {
-        willDoNothing().given(mockSession).setAttribute(SessionKey.LOGGED_IN_USER, testUser.getEmail());
-        given(mockSession.getAttribute(SessionKey.LOGGED_IN_USER)).willReturn(testUser.getEmail());
+    @DisplayName("사용자 아이디 로그인 성공 시 세션에 있는 유저 정보 저장한다.")
+    void login_ShouldStoreIdInSession() {
+        willDoNothing().given(mockSession).setAttribute(SessionKey.LOGGED_IN_USER, testUser.getId());
+        given(mockSession.getAttribute(SessionKey.LOGGED_IN_USER)).willReturn(testUser.getId());
 
-        sessionLoginService.login(testUser.getEmail());
+        sessionLoginService.login(testUser.getId());
 
-        then(mockSession).should().setAttribute(SessionKey.LOGGED_IN_USER, testUser.getEmail());
-        assertEquals(mockSession.getAttribute(SessionKey.LOGGED_IN_USER), testUser.getEmail());
+        then(mockSession).should().setAttribute(SessionKey.LOGGED_IN_USER, testUser.getId());
+        assertEquals(mockSession.getAttribute(SessionKey.LOGGED_IN_USER), testUser.getId());
     }
 
     @Test
-    @DisplayName("사용자 로그아웃 시 세션에서 이메일 제거")
-    void logout_ShouldRemoveEmailFromSession() {
+    @DisplayName("사용자 로그아웃 시 세션에 있는 사용자 정보 제거한다.")
+    void logout_ShouldRemoveIdFromSession() {
         willDoNothing().given(mockSession).removeAttribute(SessionKey.LOGGED_IN_USER);
-        mockSession.setAttribute(SessionKey.LOGGED_IN_USER, testUser.getEmail());
+        mockSession.setAttribute(SessionKey.LOGGED_IN_USER, testUser.getId());
 
         sessionLoginService.logout();
 
@@ -70,23 +71,23 @@ class SessionLoginServiceTest {
 
 
     @Test
-    @DisplayName("세션에 저장된 사용자의 이메일을 가져오는데 성공한다.")
-    void getLoginUserEmail_Success() {
-        given(mockSession.getAttribute(SessionKey.LOGGED_IN_USER)).willReturn(testUser.getEmail());
+    @DisplayName("세션에 저장된 사용자 정보 가져오는데 성공한다.")
+    void getLoginUserId_Success() {
+        given(mockSession.getAttribute(SessionKey.LOGGED_IN_USER)).willReturn(testUser.getId());
 
-        Optional<String> result = sessionLoginService.getLoginUserEmail();
+        Optional<Long> result = sessionLoginService.getLoginUserId();
 
         then(mockSession).should().getAttribute(SessionKey.LOGGED_IN_USER);
-        assertEquals(testUser.getEmail(), result.orElse(""));
+        assertEquals(testUser.getId(), result.orElse(null));
     }
 
 
     @Test
     @DisplayName("로그인되지 않은 상태에서 사용자 이메일 조회 시 비어있는 Optional 반환")
-    void getLoginUserEmail_WhenNotLoggedIn_ShouldReturnEmptyOptional() {
+    void getLoginUserId_WhenNotLoggedIn_ShouldReturnEmptyOptional() {
         given(mockSession.getAttribute(SessionKey.LOGGED_IN_USER)).willReturn(null);
 
-        Optional<String> result = sessionLoginService.getLoginUserEmail();
+        Optional<Long> result = sessionLoginService.getLoginUserId();
 
         assertThat(result).isEmpty();
     }
