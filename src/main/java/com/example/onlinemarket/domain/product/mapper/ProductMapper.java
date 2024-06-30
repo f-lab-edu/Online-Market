@@ -1,22 +1,23 @@
 package com.example.onlinemarket.domain.product.mapper;
 
-import com.example.onlinemarket.domain.product.dto.ProductDTO;
+import com.example.onlinemarket.domain.product.entity.Product;
 import java.util.List;
+import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface ProductMapper {
 
-    List<ProductDTO> findAll(Long categoryId, int offset, int limit);
+    void insert(Product product);
 
-    ProductDTO findById(long productId);
+    List<Product> selectProductsByCategory(Long categoryId, int offset, int limit);
 
-    List<ProductDTO> findByNameContaining(@Param("name") String name);
+    Optional<Product> findById(long productId);
 
-    void insert(ProductDTO productDTO);
+    List<Product> findByNameContaining(@Param("name") String name);
 
-    void update(ProductDTO product);
+    void update(Product product);
 
     void deleteById(@Param("id") long productId);
 
