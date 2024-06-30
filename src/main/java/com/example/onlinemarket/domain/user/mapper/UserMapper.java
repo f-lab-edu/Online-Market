@@ -7,9 +7,15 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface UserMapper {
 
-    void insertUser(User user);
+    void insert(User user);
 
-    int emailExists(String userEmail);
+    boolean existsByUserId(String userId);
+
+    boolean existsById(Long id);
 
     Optional<User> findByEmail(String email);
+
+    Optional<User> findByUserId(String userId);
+
+    Optional<User> findById(Long id);
 }

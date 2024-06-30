@@ -6,10 +6,9 @@ import org.springframework.stereotype.Service;
 @Service
 public interface LoginService {
 
-    void login(String email);
+    void login(long id);
 
     void logout();
 
-    Optional<String> getLoginUserEmail();
-
+    Optional<Long> getLoginUserId();
 }
