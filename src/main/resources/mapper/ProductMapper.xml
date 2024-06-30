@@ -4,7 +4,15 @@
 
 <mapper namespace="com.example.onlinemarket.domain.product.mapper.ProductMapper">
 
-  <select id="findAll" resultType="com.example.onlinemarket.domain.product.dto.ProductDTO">
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO Product (categoryId, name, price, quantity, description, isOutOfStock, createdDate,
+                         updatedDate)
+    VALUES (#{categoryId}, #{name}, #{price}, #{quantity}, #{description}, #{isOutOfStock},
+            now(), #{updatedDate})
+  </insert>
+
+  <select id="selectProductsByCategory"
+    resultType="com.example.onlinemarket.domain.product.entity.Product">
     SELECT p.name, p.price, p.quantity, c.name
     FROM Product p
            INNER JOIN Category c ON p.categoryId = c.id
@@ -13,29 +21,28 @@
     LIMIT #{limit} OFFSET #{offset}
   </select>
 
-  <select id="findById" resultType="com.example.onlinemarket.domain.product.dto.ProductDTO">
-    SELECT id, name, price, description
+  <select id="findById" resultType="com.example.onlinemarket.domain.product.entity.Product">
+    SELECT id, categoryId, name, price, quantity, description, isOutOfStock
     FROM Product
     WHERE id = #{id}
   </select>
 
   <select id="findByNameContaining"
-    resultType="com.example.onlinemarket.domain.product.dto.ProductDTO">
+    resultType="com.example.onlinemarket.domain.product.entity.Product">
     SELECT name, price
     FROM Product
     WHERE name LIKE CONCAT('%', #{name}, '%')
   </select>
 
-  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-    INSERT INTO Product (name, price, description)
-    VALUES (#{name}, #{price}, #{description})
-  </insert>
-
   <update id="update">
     UPDATE Product
-    SET name        = #{name},
-        price       = #{price},
-        description = #{description}
+    SET name         = #{name},
+        price        = #{price},
+        quantity     = #{quantity},
+        description  = #{description},
+        isOutOfStock = #{isOutOfStock},
+        updatedDate  = now()
+
     WHERE id = #{id}
   </update>
 

@@ -1,15 +1,18 @@
 package com.example.onlinemarket.domain.user.service;
 
 import com.example.onlinemarket.common.utils.PasswordEncryptor;
-import com.example.onlinemarket.domain.user.dto.LoginRequest;
-import com.example.onlinemarket.domain.user.dto.SignUpRequest;
+import com.example.onlinemarket.domain.user.dto.UserDto;
+import com.example.onlinemarket.domain.user.dto.request.LoginRequest;
+import com.example.onlinemarket.domain.user.dto.request.SignUpRequest;
 import com.example.onlinemarket.domain.user.entity.User;
-import com.example.onlinemarket.domain.user.exception.DuplicatedEmailException;
 import com.example.onlinemarket.domain.user.exception.DuplicatedPhoneException;
-import com.example.onlinemarket.domain.user.exception.PasswordMisMatchException;
-import com.example.onlinemarket.domain.user.exception.UserEmailNotFoundException;
+import com.example.onlinemarket.domain.user.exception.DuplicatedUserIdException;
+import com.example.onlinemarket.domain.user.exception.MisMatchPasswordException;
+import com.example.onlinemarket.domain.user.exception.NotFoundUserIdException;
 import com.example.onlinemarket.domain.user.mapper.UserMapper;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.Logger;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
@@ -19,38 +22,47 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncryptor passwordEncryptor;
+    private Logger log;
 
-    public void signUp(SignUpRequest signUpRequest) {
-        String password = passwordEncryptor.encrypt(signUpRequest.getPassword());
-        User newUser = signUpRequest.toEntity(password);
+    public void signUp(SignUpRequest request) {
+        String password = passwordEncryptor.encode(request.getPassword());
+        User user = request.toEntity(password);
 
         try {
-            userMapper.insertUser(newUser);
+            userMapper.insert(user);
         } catch (DuplicateKeyException e) {
-            if (e.getMessage().contains(newUser.getEmail())) {
-                throw new DuplicatedEmailException("중복된 이메일입니다.");
+            if (e.getMessage().contains(user.getUserId())) {
+                throw new DuplicatedUserIdException("이미 존재하는 아이디입니다.");
             }
-            if (e.getMessage().contains(newUser.getPhone())) {
-                throw new DuplicatedPhoneException("중복된 휴대폰 번호입니다.");
+            if (e.getMessage().contains(user.getPhone())) {
+                throw new DuplicatedPhoneException("이미 존재하는 휴대폰 번호입니다.");
             }
         }
     }
 
-    public void checkUserEmailDuplication(String userEmail) {
-        if (userMapper.emailExists(userEmail) == 1) {
-            throw new DuplicatedEmailException("중복된 이메일입니다.");
+    public void checkUserIdDuplication(String userId) {
+        if (userMapper.existsByUserId(userId)) {
+            throw new DuplicatedUserIdException("이미 존재하는 아이디입니다.");
         }
     }
 
-    public User findLoggedInUser(LoginRequest loginRequest) {
-        User loginUser = userMapper.findByEmail(loginRequest.getEmail())
-            .orElseThrow(() -> new UserEmailNotFoundException("등록되지 않은 이메일입니다."));
+    public UserDto findLoggedInUser(LoginRequest request) {
+        User loginUser = userMapper.findByUserId(request.getUserId())
+            .orElseThrow(() -> new NotFoundUserIdException("아이디를 찾을 수 없습니다."));
 
-        boolean isValidPassword = passwordEncryptor.isMatch(loginRequest.getPassword(), loginUser.getPassword());
+        boolean isValidPassword = passwordEncryptor.isMatch(request.getPassword(), loginUser.getPassword());
         if (!isValidPassword) {
-            throw new PasswordMisMatchException("비밀번호가 일치하지 않습니다.");
+            throw new MisMatchPasswordException("비밀번호가 일치하지 않습니다.");
         }
 
-        return loginUser;
+        return UserDto.of(loginUser);
+    }
+
+    public Optional<User> findById(Long id) {
+        return userMapper.findById(id);
+    }
+
+    public boolean isExists(Long userId) {
+        return userMapper.existsById(userId);
     }
 }

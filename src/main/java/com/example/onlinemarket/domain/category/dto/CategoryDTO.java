@@ -1,25 +1,27 @@
 package com.example.onlinemarket.domain.category.dto;
 
-import jakarta.validation.constraints.NotNull;
+import com.example.onlinemarket.domain.category.entity.Category;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
-public class CategoryDTO {
+@NoArgsConstructor
+@Builder
+@AllArgsConstructor
+public class CategoryDto {
 
-  @NotNull
-  private Long id;
+    private Long id;
+    private String name;
+    private LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
 
-  @NotNull
-  private String name;
-
-  @Builder
-  public CategoryDTO(Long id, String name) {
-    this.id = id;
-    this.name = name;
-  }
-
-  public void updateCategoryName(String name) {
-    this.name = name;
-  }
+    public static CategoryDto of(Category category) {
+        return CategoryDto.builder()
+            .id(category.getId())
+            .name(category.getName())
+            .build();
+    }
 }

@@ -5,17 +5,13 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.onlinemarket.common.exception.UnauthorizedException;
 import com.example.onlinemarket.domain.order.controller.OrderController;
-import com.example.onlinemarket.domain.order.dto.OrderDTO;
-import com.example.onlinemarket.domain.order.dto.OrderDetailDTO;
-import com.example.onlinemarket.domain.order.eunm.OrderStatus;
+import com.example.onlinemarket.domain.order.dto.request.OrderDetailRequest;
+import com.example.onlinemarket.domain.order.dto.request.OrderRequest;
 import com.example.onlinemarket.domain.order.service.OrderService;
-import com.example.onlinemarket.domain.product.dto.ProductDTO;
+import com.example.onlinemarket.domain.user.exception.UnauthorizedUserException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,39 +36,45 @@ public class OrderControllerTest {
     @MockBean
     private OrderService orderService;
 
-    private OrderDTO orderDTO;
-    private ProductDTO product1;
-    private ProductDTO product2;
+    private OrderRequest orderRequest;
 
     @BeforeEach
     public void setUp() {
-        product1 = new ProductDTO(101L, "First Product", 15000.0, 10, "First Product Description");
-        product2 = new ProductDTO(102L, "Second Product", 30000.0, 5, "Second Product Description");
+        OrderDetailRequest detail1 = OrderDetailRequest.builder()
+            .productId(1L)
+            .productQuantity(2L)
+            .build();
 
-        List<OrderDetailDTO> orderDetailsList = new ArrayList<>();
-        orderDetailsList.add(new OrderDetailDTO(0L, null, product1.getId(), 2, product1.getPrice()));
-        orderDetailsList.add(new OrderDetailDTO(0L, null, product2.getId(), 1, product2.getPrice()));
+        OrderDetailRequest detail2 = OrderDetailRequest.builder()
+            .productId(2L)
+            .productQuantity(1L)
+            .build();
 
-        orderDTO = OrderDTO.builder().userId(1L).totalPrice(60000.0).orderTime(LocalDateTime.now())
-            .status(OrderStatus.READY).orderDetails(orderDetailsList).build();
+        orderRequest = OrderRequest.builder()
+            .orderDetailRequest(Arrays.asList(detail1, detail2))
+            .build();
     }
 
     @Test
     @DisplayName("주문 생성 성공 시 201 Created 상태 코드 반환")
     public void testCreateOrderSuccess() throws Exception {
-        when(orderService.createOrder(any(OrderDTO.class))).thenReturn(1L);
+        when(orderService.createOrder(any(Long.class), any(OrderRequest.class))).thenReturn(1L);
 
-        mockMvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(orderDTO))).andExpect(status().isCreated());
+        mockMvc.perform(post("/orders")
+                .sessionAttr("LOGGED_IN_USER", 1L)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(orderRequest)))
+            .andExpect(status().isCreated());
     }
 
     @Test
     @DisplayName("인증되지 않은 사용자가 주문 생성 실패하여 401 Unauthorized 상태 코드 반환")
     public void testCreateOrderAuthenticationFailure() throws Exception {
-        when(orderService.createOrder(any(OrderDTO.class))).thenThrow(new UnauthorizedException("사용자 인증 실패"));
+        when(orderService.createOrder(any(Long.class), any(OrderRequest.class))).thenThrow(new UnauthorizedUserException("사용자 인증 실패"));
 
-        mockMvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(orderDTO)))
+        mockMvc.perform(post("/orders")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(orderRequest)))
             .andExpect(status().isUnauthorized());
     }
 }

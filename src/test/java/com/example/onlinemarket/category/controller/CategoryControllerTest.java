@@ -9,9 +9,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.onlinemarket.common.exception.NotFoundException;
 import com.example.onlinemarket.domain.category.controller.CategoryController;
-import com.example.onlinemarket.domain.category.dto.CategoryDTO;
+import com.example.onlinemarket.domain.category.dto.CategoryDto;
+import com.example.onlinemarket.domain.category.dto.request.CategoryCreateRequest;
+import com.example.onlinemarket.domain.category.exception.NotFoundCategoryException;
 import com.example.onlinemarket.domain.category.service.CategoryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
@@ -32,123 +33,126 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 @AutoConfigureMockMvc(addFilters = false)
 class CategoryControllerTest {
 
-  @Autowired
-  private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @Autowired
-  private ObjectMapper objectMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-  @MockBean
-  private CategoryService categoryService;
+    @MockBean
+    private CategoryService categoryService;
 
-  private CategoryDTO categoryDTO;
+    private CategoryDto categoryDTO;
 
-  @BeforeEach
-  void setUp() {
+    @BeforeEach
+    void setUp() {
 
-    categoryDTO = new CategoryDTO(1L, "CategoryName");
-  }
+        categoryDTO = CategoryDto.builder()
+            .id(1L)
+            .name("CategoryName")
+            .build();
+    }
 
-  @Test
-  @DisplayName("전체 카테고리 조회 성공")
-  void getAllCategories_Success() throws Exception {
+    @Test
+    @DisplayName("전체 카테고리 조회 성공")
+    void getAllCategories_Success() throws Exception {
 
-    List<CategoryDTO> categoryList = Arrays.asList(categoryDTO);
+        List<CategoryDto> categoryList = Arrays.asList(categoryDTO);
 
-    given(categoryService.getCategories()).willReturn(categoryList);
+        given(categoryService.getCategories()).willReturn(categoryList);
 
-    mockMvc.perform(MockMvcRequestBuilders.get("/categories"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].name", is(categoryDTO.getName())));
-  }
+        mockMvc.perform(MockMvcRequestBuilders.get("/categories"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].name", is(categoryDTO.getName())));
+    }
 
-  @Test
-  @DisplayName("특정 카테고리 조회 성공")
-  void getCategoryById_Success() throws Exception {
+    @Test
+    @DisplayName("특정 카테고리 조회 성공")
+    void getCategoryById_Success() throws Exception {
 
-    given(categoryService.findById(1L)).willReturn(categoryDTO);
+        given(categoryService.findById(1L)).willReturn(categoryDTO);
 
-    mockMvc.perform(MockMvcRequestBuilders.get("/categories/1"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.name", is(categoryDTO.getName())));
-  }
+        mockMvc.perform(MockMvcRequestBuilders.get("/categories/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name", is(categoryDTO.getName())));
+    }
 
-  @Test
-  @DisplayName("특정 카테고리 조회 실패 - 존재하지 않는 ID")
-  void getCategoryById_Fail_NotFound() throws Exception {
+    @Test
+    @DisplayName("특정 카테고리 조회 실패 - 존재하지 않는 ID")
+    void getCategoryById_Fail_NotFound() throws Exception {
 
-    given(categoryService.findById(1L)).willThrow(new NotFoundException("카테고리를 찾을 수 없습니다."));
+        given(categoryService.findById(1L)).willThrow(new NotFoundCategoryException("카테고리를 찾을 수 없습니다."));
 
-    mockMvc.perform(MockMvcRequestBuilders.get("/categories/1"))
-        .andExpect(status().isNotFound());
-  }
+        mockMvc.perform(MockMvcRequestBuilders.get("/categories/1"))
+            .andExpect(status().isNotFound());
+    }
 
-  @Test
-  @DisplayName("카테고리 생성 성공")
-  void createCategory_Success() throws Exception {
+    @Test
+    @DisplayName("카테고리 생성 성공")
+    void createCategory_Success() throws Exception {
 
-    given(categoryService.saveCategory(any(CategoryDTO.class))).willReturn(1L);
+        given(categoryService.saveCategory(any(CategoryCreateRequest.class))).willReturn(1L);
 
-    mockMvc.perform(MockMvcRequestBuilders.post("/categories")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(categoryDTO)))
-        .andExpect(status().isCreated());
-  }
+        mockMvc.perform(MockMvcRequestBuilders.post("/categories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(categoryDTO)))
+            .andExpect(status().isCreated());
+    }
 
-  @Test
-  @DisplayName("카테고리 생성 실패 - 잘못된 요청 데이터")
-  void createCategory_Fail_BadRequest() throws Exception {
+    @Test
+    @DisplayName("카테고리 생성 실패 - 잘못된 요청 데이터")
+    void createCategory_Fail_BadRequest() throws Exception {
 
-    CategoryDTO invalidCategoryDTO = new CategoryDTO(null, " ");
+        CategoryDto invalidCategoryDto = new CategoryDto();
 
-    mockMvc.perform(MockMvcRequestBuilders.post("/categories")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(invalidCategoryDTO)))
-        .andExpect(status().isBadRequest());
-  }
+        mockMvc.perform(MockMvcRequestBuilders.post("/categories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidCategoryDto)))
+            .andExpect(status().isBadRequest());
+    }
 
-  @Test
-  @DisplayName("카테고리 수정 성공")
-  void updateCategory_Success() throws Exception {
+    @Test
+    @DisplayName("카테고리 수정 성공")
+    void updateCategory_Success() throws Exception {
 
-    willDoNothing().given(categoryService).updateCategoryName(eq(1L), any(CategoryDTO.class));
+        willDoNothing().given(categoryService).updateCategoryName(eq(1L), any(String.class));
 
-    mockMvc.perform(MockMvcRequestBuilders.put("/categories/1")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(categoryDTO)))
-        .andExpect(status().isNoContent());
-  }
+        mockMvc.perform(MockMvcRequestBuilders.put("/categories/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(categoryDTO)))
+            .andExpect(status().isNoContent());
+    }
 
-  @Test
-  @DisplayName("카테고리 수정 실패 - 존재하지 않는 카테고리")
-  void updateCategory_Fail_NotFound() throws Exception {
+    @Test
+    @DisplayName("카테고리 수정 실패 - 존재하지 않는 카테고리")
+    void updateCategory_Fail_NotFound() throws Exception {
 
-    doThrow(new NotFoundException("카테고리를 찾을 수 없습니다.")).when(categoryService)
-        .updateCategoryName(eq(1L), any(CategoryDTO.class));
+        doThrow(new NotFoundCategoryException("카테고리를 찾을 수 없습니다.")).when(categoryService)
+            .updateCategoryName(eq(1L), any(String.class));
 
-    mockMvc.perform(MockMvcRequestBuilders.put("/categories/1")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(categoryDTO)))
-        .andExpect(status().isNotFound());
-  }
+        mockMvc.perform(MockMvcRequestBuilders.put("/categories/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(categoryDTO)))
+            .andExpect(status().isNotFound());
+    }
 
-  @Test
-  @DisplayName("카테고리 삭제 성공")
-  void deleteCategory_Success() throws Exception {
+    @Test
+    @DisplayName("카테고리 삭제 성공")
+    void deleteCategory_Success() throws Exception {
 
-    willDoNothing().given(categoryService).deleteCategory(1L);
+        willDoNothing().given(categoryService).deleteCategory(1L);
 
-    mockMvc.perform(MockMvcRequestBuilders.delete("/categories/1"))
-        .andExpect(status().isNoContent());
-  }
+        mockMvc.perform(MockMvcRequestBuilders.delete("/categories/1"))
+            .andExpect(status().isNoContent());
+    }
 
-  @Test
-  @DisplayName("카테고리 삭제 실패 - 존재하지 않는 카테고리")
-  void deleteCategory_Fail_NotFound() throws Exception {
+    @Test
+    @DisplayName("카테고리 삭제 실패 - 존재하지 않는 카테고리")
+    void deleteCategory_Fail_NotFound() throws Exception {
 
-    doThrow(new NotFoundException("카테고리를 찾을 수 없습니다.")).when(categoryService).deleteCategory(1L);
+        doThrow(new NotFoundCategoryException("카테고리를 찾을 수 없습니다.")).when(categoryService).deleteCategory(1L);
 
-    mockMvc.perform(MockMvcRequestBuilders.delete("/categories/1"))
-        .andExpect(status().isNotFound());
-  }
+        mockMvc.perform(MockMvcRequestBuilders.delete("/categories/1"))
+            .andExpect(status().isNotFound());
+    }
 }

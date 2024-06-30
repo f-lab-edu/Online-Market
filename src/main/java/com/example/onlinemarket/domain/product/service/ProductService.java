@@ -1,11 +1,19 @@
 package com.example.onlinemarket.domain.product.service;
 
 import com.example.onlinemarket.common.Redis.RedisService;
-import com.example.onlinemarket.common.exception.NotFoundException;
-import com.example.onlinemarket.domain.product.dto.ProductDTO;
+import com.example.onlinemarket.domain.category.mapper.CategoryMapper;
+import com.example.onlinemarket.domain.category.service.CategoryService;
+import com.example.onlinemarket.domain.product.dto.request.ProductCreateRequest;
+import com.example.onlinemarket.domain.product.dto.request.ProductUpdateRequest;
+import com.example.onlinemarket.domain.product.dto.response.ProductDetailResponse;
+import com.example.onlinemarket.domain.product.dto.response.ProductListResponse;
+import com.example.onlinemarket.domain.product.dto.response.ProductResponse;
+import com.example.onlinemarket.domain.product.entity.Product;
+import com.example.onlinemarket.domain.product.exception.NotFoundProductException;
 import com.example.onlinemarket.domain.product.mapper.ProductMapper;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,65 +21,77 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ProductService {
 
+    private final CategoryService categoryService;
     private final ProductMapper productMapper;
+    private final CategoryMapper categoryMapper;
     private final RedisService redisService;
 
-    public List<ProductDTO> getAllProducts(Long categoryId, int page, int limit) {
-        String key = "category:" + categoryId + ":page:" + page + ":limit:" + limit;
+    public long createProduct(long categoryId, ProductCreateRequest request) {
+        categoryService.findById(categoryId);
+        Product product = request.toEntity(categoryId);
+        productMapper.insert(product);
 
-        List<ProductDTO> products = (List<ProductDTO>) redisService.getValues(key);
+        return product.getId();
+    }
+
+    public ProductListResponse getProductsByCategory(Long categoryId, int page, int limit) {
+        String key = "category:" + categoryId + ":page:" + page + ":limit:" + limit;
+        List<Product> products = (List<Product>) redisService.getValues(key);
+
         if (products == null) {
             int offset = (page - 1) * limit;
-            products = productMapper.findAll(categoryId, offset, limit);
+            products = productMapper.selectProductsByCategory(categoryId, offset, limit);
             redisService.setValues(key, products, 10, TimeUnit.MINUTES);
         }
 
-        return products;
+        List<ProductResponse> productResponses = products.stream()
+            .map(ProductResponse::of)
+            .toList();
+
+        return new ProductListResponse(productResponses);
     }
 
-    public List<ProductDTO> searchProductsByName(String name) {
-        List<ProductDTO> searchedProducts = productMapper.findByNameContaining(name);
-
+    public ProductListResponse searchProductsByName(String name) {
+        List<Product> searchedProducts = productMapper.findByNameContaining(name);
         if (searchedProducts.isEmpty()) {
-            throw new NotFoundException("상품 이름에 따른 검색 결과가 없습니다.");
+            throw new NotFoundProductException("해당 상품을 찾을 수 없습니다.");
         }
 
-        return searchedProducts;
+        List<ProductResponse> productResponses = searchedProducts.stream()
+            .map(ProductResponse::of)
+            .collect(Collectors.toList());
+
+        return new ProductListResponse(productResponses);
     }
 
+    public ProductDetailResponse getProductDetails(long id) {
+        return productMapper.findById(id)
+            .map(product -> {
+                String categoryName = categoryMapper.selectCategoryName(product.getCategoryId());
 
-    public ProductDTO getProductById(long id) {
-        ProductDTO product = productMapper.findById(id);
-
-        if (product == null) {
-            throw new NotFoundException("Products not found");
-        }
-        return product;
+                return ProductDetailResponse.of(product, categoryName);
+            })
+            .orElseThrow(() -> new NotFoundProductException("해당 상품을 찾을 수 없습니다."));
     }
 
-
-    public long createProduct(ProductDTO productDTO) {
-        productMapper.insert(productDTO);
-
-        return productDTO.getId();
+    public void updateProduct(Long id, ProductUpdateRequest updateRequest) {
+        checkProductExists(id);
+        Product product = updateRequest.toEntity(id);
+        productMapper.update(product);
     }
 
-
-    public ProductDTO updateProduct(ProductDTO productDTO) {
-        ProductDTO existingProduct = getProductById(productDTO.getId());
-
-        if (existingProduct == null) {
-            throw new NotFoundException("상품 id가 존재하지 않습니다.");
-        }
-        productMapper.update(productDTO);
-
-        return existingProduct;
-    }
-
-
-    public void deleteProduct(int id) {
-        getProductById(id);
-
+    public void deleteProduct(Long id) {
+        checkProductExists(id);
         productMapper.deleteById(id);
+    }
+
+    public Product checkProductExists(Long id) {
+        return productMapper.findById(id)
+            .orElseThrow(() -> new NotFoundProductException("해당 상품을 찾을 수 없습니다."));
+    }
+
+    public void decreaseStock(Product product, Long productQuantity) {
+        product.decreaseStock(productQuantity);
+        productMapper.update(product);
     }
 }

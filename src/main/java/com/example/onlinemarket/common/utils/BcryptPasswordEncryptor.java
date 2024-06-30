@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 public class BcryptPasswordEncryptor implements PasswordEncryptor {
 
     @Override
-    public String encrypt(String password) {
+    public String encode(String password) {
         return BCrypt.hashpw(password, BCrypt.gensalt());
     }
 

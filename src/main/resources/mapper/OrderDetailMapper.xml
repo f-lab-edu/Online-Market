@@ -6,10 +6,8 @@
 
   <insert id="insert" useGeneratedKeys="true" keyProperty="id"
     parameterType="com.example.onlinemarket.domain.order.domain.Order">
-    INSERT INTO OrderDetail (order_id, product_id, product_name, product_price, product_quantity,
-                             status)
-    VALUES (#{orderId}, #{productId}, #{productName}, #{productPrice}, #{productquantity},
-            #{status})
+    INSERT INTO OrderDetail (orderId, productId, productName, productPrice, productQuantity)
+    VALUES (#{orderId}, #{productId}, #{productName}, #{productPrice}, #{productQuantity})
   </insert>
 
 </mapper>

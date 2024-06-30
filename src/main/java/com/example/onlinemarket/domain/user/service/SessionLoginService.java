@@ -13,8 +13,8 @@ public class SessionLoginService implements LoginService {
     private final HttpSession session;
 
     @Override
-    public void login(String email) {
-        session.setAttribute(SessionKey.LOGGED_IN_USER, email);
+    public void login(long id) {
+        session.setAttribute(SessionKey.LOGGED_IN_USER, id);
     }
 
     @Override
@@ -23,7 +23,7 @@ public class SessionLoginService implements LoginService {
     }
 
     @Override
-    public Optional<String> getLoginUserEmail() {
-        return Optional.ofNullable((String) session.getAttribute(SessionKey.LOGGED_IN_USER));
+    public Optional<Long> getLoginUserId() {
+        return Optional.ofNullable((Long) session.getAttribute(SessionKey.LOGGED_IN_USER));
     }
 }

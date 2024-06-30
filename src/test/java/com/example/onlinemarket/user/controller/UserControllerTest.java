@@ -10,13 +10,13 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.onlinemarket.domain.user.controller.UserController;
-import com.example.onlinemarket.domain.user.dto.LoginRequest;
-import com.example.onlinemarket.domain.user.dto.SignUpRequest;
-import com.example.onlinemarket.domain.user.entity.User;
-import com.example.onlinemarket.domain.user.exception.DuplicatedEmailException;
+import com.example.onlinemarket.domain.user.dto.UserDto;
+import com.example.onlinemarket.domain.user.dto.request.LoginRequest;
+import com.example.onlinemarket.domain.user.dto.request.SignUpRequest;
 import com.example.onlinemarket.domain.user.exception.DuplicatedPhoneException;
-import com.example.onlinemarket.domain.user.exception.PasswordMisMatchException;
-import com.example.onlinemarket.domain.user.exception.UserEmailNotFoundException;
+import com.example.onlinemarket.domain.user.exception.DuplicatedUserIdException;
+import com.example.onlinemarket.domain.user.exception.MisMatchPasswordException;
+import com.example.onlinemarket.domain.user.exception.NotFoundUserIdException;
 import com.example.onlinemarket.domain.user.service.LoginService;
 import com.example.onlinemarket.domain.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,17 +45,17 @@ class UserControllerTest {
     UserService userService;
     @MockBean
     LoginService loginService;
-    User user;
+    UserDto user;
     SignUpRequest signUpRequest;
     LoginRequest loginRequest;
     MockHttpSession mockHttpSession;
 
     @BeforeEach
     void setUp() {
-        signUpRequest = new SignUpRequest("test1234@example.com", "test1234", "geonhui",
+        signUpRequest = new SignUpRequest("1", "test1234@example.com", "test1234", "geonhui",
             "01012345678");
         loginRequest = new LoginRequest("test1234@example.com", "test1234");
-        user = User.builder()
+        user = UserDto.builder()
             .email("test1234@example.com")
             .password("test1234")
             .name("geonhui")
@@ -84,7 +84,7 @@ class UserControllerTest {
     @DisplayName("중복된 이메일로 회원가입 실패하고 상태코드 409를 반환")
     void signUpFailureWithDuplicatedEmail() throws Exception {
         // given
-        doThrow(new DuplicatedEmailException()).when(userService).signUp(any(SignUpRequest.class));
+        doThrow(new DuplicatedUserIdException("이미 존재하는 아이디입니다.")).when(userService).signUp(any(SignUpRequest.class));
 
         // when & then
         mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/users")
@@ -100,7 +100,7 @@ class UserControllerTest {
     @DisplayName("중복된 휴대폰 번호로 회원가입 실패하고 상태코드 409 반환")
     void signUpFailureWithDuplicatedPhoneNumber() throws Exception {
         // given
-        doThrow(new DuplicatedPhoneException()).when(userService).signUp(any(SignUpRequest.class));
+        doThrow(new DuplicatedPhoneException("중복된 휴대폰 번호입니다.")).when(userService).signUp(any(SignUpRequest.class));
 
         // when & then
         mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/users")
@@ -117,7 +117,7 @@ class UserControllerTest {
     void checkEmailDuplicationSuccess() throws Exception {
         // given
         String userEmail = "test@example.com";
-        doNothing().when(userService).checkUserEmailDuplication(userEmail);
+        doNothing().when(userService).checkUserIdDuplication(userEmail);
 
         // when & then
         mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/users/check-duplication")
@@ -131,7 +131,7 @@ class UserControllerTest {
     void checkUserEmailDuplicationFail() throws Exception {
         // given
         String userEmail = "test@example.com";
-        doThrow(new DuplicatedEmailException()).when(userService).checkUserEmailDuplication(anyString());
+        doThrow(new DuplicatedUserIdException("이미 존재하는 아이디입니다.")).when(userService).checkUserIdDuplication(anyString());
 
         // when & then
         mockMvc.perform(MockMvcRequestBuilders
@@ -146,7 +146,7 @@ class UserControllerTest {
     void loginSuccess() throws Exception {
         // given
         when(userService.findLoggedInUser(any(LoginRequest.class))).thenReturn(user);
-        doNothing().when(loginService).login(user.getEmail());
+        doNothing().when(loginService).login(user.getId());
 
         // when & then
         mockMvc.perform(MockMvcRequestBuilders
@@ -157,7 +157,7 @@ class UserControllerTest {
 
         // verify
         Mockito.verify(userService).findLoggedInUser(loginRequest);
-        Mockito.verify(loginService).login(user.getEmail());
+        Mockito.verify(loginService).login(user.getId());
     }
 
     @Test
@@ -167,7 +167,7 @@ class UserControllerTest {
         LoginRequest nonExistentEmailLoginRequest = new LoginRequest("nonexistent@example.com", "password");
 
         given(userService.findLoggedInUser(any(LoginRequest.class)))
-            .willThrow(new UserEmailNotFoundException());
+            .willThrow(new NotFoundUserIdException("사용자 아이디가 존재하지 않습니다."));
 
         // when & then
         mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/users/login")
@@ -186,7 +186,7 @@ class UserControllerTest {
         // given
         LoginRequest wrongPasswordLoginRequest = new LoginRequest("test1234@example.com", "wrongPassword");
         given(userService.findLoggedInUser(any(LoginRequest.class)))
-            .willThrow(new PasswordMisMatchException());
+            .willThrow(new MisMatchPasswordException("비밀번호가 일치하지 않습니다."));
 
         // when & then
         mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/users/login")

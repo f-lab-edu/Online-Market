@@ -1,6 +1,5 @@
 package com.example.onlinemarket.product.controller;
 
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.refEq;
@@ -12,13 +11,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.onlinemarket.common.exception.NotFoundException;
-import com.example.onlinemarket.common.exception.ValidationException;
 import com.example.onlinemarket.domain.product.controller.ProductController;
-import com.example.onlinemarket.domain.product.dto.ProductDTO;
+import com.example.onlinemarket.domain.product.dto.ProductDto;
+import com.example.onlinemarket.domain.product.dto.request.ProductCreateRequest;
+import com.example.onlinemarket.domain.product.dto.request.ProductUpdateRequest;
+import com.example.onlinemarket.domain.product.dto.response.ProductDetailResponse;
+import com.example.onlinemarket.domain.product.exception.NotFoundProductException;
 import com.example.onlinemarket.domain.product.service.ProductService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,11 +46,31 @@ public class ProductControllerTest {
     @MockBean
     private ProductService productService;
 
-    private ProductDTO productDTO;
+    private ProductDetailResponse productDetailResponse;
+    private ProductCreateRequest productCreateRequest;
+    private ProductDto productDto;
 
     @BeforeEach
     public void setUp() {
-        productDTO = new ProductDTO(1L, 1L, "categoryName", "Product Name", 100.0, 40, "Test Description");
+        productDetailResponse = ProductDetailResponse.builder()
+            .name("name")
+            .price(100L)
+            .quantity(40L)
+            .description("Test Description")
+            .build();
+
+        productCreateRequest = ProductCreateRequest.builder()
+            .name("name")
+            .price(100L)
+            .quantity(40L)
+            .description("Test Description")
+            .build();
+
+        productDto = ProductDto.builder()
+            .name("name")
+            .price(100L)
+            .quantity(40L)
+            .build();
     }
 
     @Test
@@ -59,40 +79,39 @@ public class ProductControllerTest {
         Long categoryId = 1L;
         int page = 1;
         int size = 10;
-        List<ProductDTO> allProducts = Arrays.asList(productDTO);
+        List<ProductDto> allProducts = Collections.singletonList(productDto);
 
-        when(productService.getAllProducts(categoryId, page, size)).thenReturn(allProducts);
+        when(productService.getProductsByCategory(categoryId, page, size)).thenReturn(allProducts);
 
-        mockMvc.perform(get("/products")
-                .param("categoryId", String.valueOf(categoryId))
+        mockMvc.perform(get("/products/categories/{categoryId}", categoryId)
                 .param("page", String.valueOf(page))
-                .param("size", String.valueOf(size))
+                .param("limit", String.valueOf(size))
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data['TestCategory']", hasSize(1)))
-            .andExpect(jsonPath("$.data['TestCategory'][0].name", is(productDTO.getName())));
+            .andExpect(jsonPath("$.length()", is(1)))
+            .andExpect(jsonPath("$[0].name", is(productDto.getName())));
     }
-
 
     @Test
     @DisplayName("상품 이름으로 검색 성공 시 200 Ok 반환")
     public void testSearchProductsByNameSuccess() throws Exception {
-        when(productService.searchProductsByName("Test")).thenReturn(
-            Collections.singletonList(productDTO));
+        List<ProductDto> products = Collections.singletonList(productDto);
+
+        when(productService.searchProductsByName("Test")).thenReturn(products);
 
         mockMvc.perform(get("/products/search")
                 .param("productName", "Test")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data", hasSize(1)))
-            .andExpect(jsonPath("$.data[0].name", is(productDTO.getName())));
+            .andExpect(jsonPath("$.length()", is(1)))
+            .andExpect(jsonPath("$[0].name", is(productDto.getName())));
     }
 
     @Test
     @DisplayName("상품 이름으로 검색 실패 시 404 Not Found 반환 - 결과 없음")
     public void testSearchProductsByNameFailure() throws Exception {
         when(productService.searchProductsByName("nonexistent")).thenThrow(
-            new NotFoundException("No products found"));
+            new NotFoundProductException("No products found"));
 
         mockMvc.perform(get("/products/search")
                 .param("productName", "nonexistent")
@@ -107,38 +126,34 @@ public class ProductControllerTest {
         int page = 1;
         int size = 10;
 
-        when(productService.getAllProducts(categoryId, page, size)).thenThrow(
-            new NotFoundException("Products not found"));
+        when(productService.getProductsByCategory(categoryId, page, size)).thenThrow(
+            new NotFoundProductException("Products not found"));
 
-        mockMvc.perform(get("/products")
-                .param("categoryId", String.valueOf(categoryId))
+        mockMvc.perform(get("/products/categories/{categoryId}", categoryId)
                 .param("page", String.valueOf(page))
-                .param("size", String.valueOf(size))
+                .param("limit", String.valueOf(size))
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound());
     }
 
-
     @Test
     @DisplayName("상품 ID로 특정 상품 조회 시 200 Ok 반환")
     public void testGetProductById() throws Exception {
-        when(productService.getProductById(1L)).thenReturn(productDTO);
+        when(productService.getProductDetails(1L)).thenReturn(productDetailResponse);
 
         mockMvc.perform(get("/products/{id}", 1L)
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.id", is(1))) // 수정됨
-            .andExpect(jsonPath("$.data.name", is(productDTO.getName())));
+            .andExpect(jsonPath("$.name", is(productDetailResponse.getName())));
     }
-
 
     @Test
     @DisplayName("상품 ID로 특정 상품 조회 실패시 404 Not Found 상태 코드 반환")
     public void testFailGetProductById() throws Exception {
-        when(productService.getProductById(1)).thenThrow(
-            new NotFoundException("Product not found"));
+        when(productService.getProductDetails(1L)).thenThrow(
+            new NotFoundProductException("Product not found"));
 
-        mockMvc.perform(get("/products/{id}", 1)
+        mockMvc.perform(get("/products/{id}", 1L)
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound());
     }
@@ -146,68 +161,75 @@ public class ProductControllerTest {
     @Test
     @DisplayName("상품 추가 성공 시 201 Created 상태 코드 반환")
     public void testCreateProduct() throws Exception {
-        when(productService.createProduct(refEq(productDTO))).thenReturn(productDTO.getId());
+        when(productService.createProduct(any(Long.class), refEq(productCreateRequest))).thenReturn(1L);
 
-        mockMvc.perform(post("/products")
+        mockMvc.perform(post("/products/categories/{categoryId}", 1L)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(productDTO)))
+                .content(objectMapper.writeValueAsString(productCreateRequest)))
             .andExpect(status().isCreated());
 
-        Mockito.verify(productService).createProduct(refEq(productDTO));
+        Mockito.verify(productService).createProduct(any(Long.class), refEq(productCreateRequest));
     }
-
 
     @Test
     @DisplayName("상품 추가 실패 시 400 Bad Request 상태 코드 반환")
     public void testFailCreateProduct() throws Exception {
-        Mockito.doThrow(new ValidationException()).when(productService)
-            .createProduct(refEq(productDTO));
+        Mockito.doThrow(new NotFoundProductException("Invalid data")).when(productService)
+            // 예외처리 클래스 변경 필요
+            .createProduct(any(Long.class), refEq(productCreateRequest));
 
-        mockMvc.perform(post("/products")
+        mockMvc.perform(post("/products/categories/{categoryId}", 1L)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(productDTO)))
+                .content(objectMapper.writeValueAsString(productCreateRequest)))
             .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("상품 정보 업데이트 성공 시 200 OK 상태 코드 반환")
     public void testUpdateProduct() throws Exception {
-        when(productService.updateProduct(refEq(productDTO))).thenReturn(productDTO);
+        ProductUpdateRequest productUpdateRequest = ProductUpdateRequest.builder()
+            .name("updated name")
+            .price(150L)
+            .quantity(50L)
+            .description("Updated Description")
+            .build();
 
-        mockMvc.perform(put("/products/{id}", productDTO.getId())
+        mockMvc.perform(put("/products/{id}", 1L)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(productDTO)))
+                .content(objectMapper.writeValueAsString(productUpdateRequest)))
             .andExpect(status().isOk());
     }
-
 
     @Test
     @DisplayName("상품 정보 업데이트 실패 시 400 Bad Request 상태 코드 반환")
     public void testFailUpdateProduct() throws Exception {
-        when(productService.updateProduct(any())).thenThrow(
-            new ValidationException("Invalid data"));
+        ProductUpdateRequest productUpdateRequest = ProductUpdateRequest.builder().build();
 
-        mockMvc.perform(put("/products/{id}", productDTO.getId())
+        Mockito.doThrow(new NotFoundProductException("Invalid data")).when(productService)
+            // 예외처리 클래스 변경 필요
+            .updateProduct(any(Long.class), any(ProductUpdateRequest.class));
+
+        mockMvc.perform(put("/products/{id}", 1L)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(productDTO)))
+                .content(objectMapper.writeValueAsString(productUpdateRequest)))
             .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("상품 정보 삭제 시 200 OK 상태 코드를 반환한다.")
+    @DisplayName("상품 정보 삭제 시 204 No Content 상태 코드를 반환한다.")
     public void testDeleteProduct() throws Exception {
-        mockMvc.perform(delete("/products/{id}", 1)
+        mockMvc.perform(delete("/products/{id}", 1L)
                 .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk());
+            .andExpect(status().isNoContent());
     }
 
     @Test
-    @DisplayName("상품 정보 삭제 성공 시 404 Not Found 상태 코드 반환")
+    @DisplayName("상품 정보 삭제 실패 시 404 Not Found 상태 코드 반환")
     public void testFailDeleteProduct() throws Exception {
-        Mockito.doThrow(new NotFoundException("Product not found")).when(productService)
-            .deleteProduct(1);
+        Mockito.doThrow(new NotFoundProductException("Product not found")).when(productService)
+            .deleteProduct(1L);
 
-        mockMvc.perform(delete("/products/{id}", 1)
+        mockMvc.perform(delete("/products/{id}", 1L)
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound());
     }
